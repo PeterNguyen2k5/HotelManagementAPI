@@ -1,0 +1,10 @@
+{
+    email {$ACME_EMAIL}
+}
+
+{$HOTEL_DOMAIN} {
+    # Scrapes go directly over the private Docker network, never through the public site.
+    @metrics path /metrics /metrics/*
+    respond @metrics 404
+    reverse_proxy hotel:8080
+}

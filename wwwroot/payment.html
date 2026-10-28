@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thanh toán đặt phòng · An Nhiên Hotel & Resort</title>
+  <link rel="stylesheet" href="/fonts.css?v=20261027-portal-2">
+  <link rel="stylesheet" href="/payment.css?v=20261027-deposit-1">
+  <script src="/api-errors.js?v=20261027-portal-2" defer></script>
+  <script src="/hotel-time.js?v=20261027-deploy-1" defer></script>
+  <script src="/payment.js?v=20261028-payment-method-1" defer></script>
+</head>
+<body>
+  <header class="pay-header">
+    <div class="header-inner">
+      <a class="pay-brand" href="/hotel.html">
+        <span class="brand-badge">A</span>
+        <div>
+          An Nhiên
+          <small>HOTEL &amp; RESORT</small>
+        </div>
+      </a>
+      <div class="header-nav">
+        <a href="/customer.html?v=20261027-portal-2#bookings">Booking của tôi</a>
+        <a href="/hotel.html">← Về trang chủ</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="pay-layout" id="pay-layout">
+    <div class="loading-state" id="loading-state">
+      <div class="spinner"></div>
+      <p>Đang tải thông tin đặt phòng &amp; cổng thanh toán...</p>
+    </div>
+
+    <div class="pay-content" id="pay-content" style="display:none;">
+      <!-- Cột trái: Tóm tắt đặt phòng & Lựa chọn phương thức -->
+      <section class="pay-col left-col">
+        <div class="card booking-summary">
+          <div class="card-title">
+            <span class="step-num">1</span>
+            <h2>Thông tin đặt phòng</h2>
+          </div>
+          <div class="booking-id-tag" id="summary-booking-id">Booking #...</div>
+
+          <div class="summary-details">
+            <div class="detail-row">
+              <span class="label">Khách hàng:</span>
+              <strong id="summary-guest-name">—</strong>
+            </div>
+            <div class="detail-row">
+              <span class="label">Số điện thoại:</span>
+              <span id="summary-guest-phone">—</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Phòng:</span>
+              <strong id="summary-room-name">Phòng —</strong>
+            </div>
+            <div class="detail-row">
+              <span class="label">Thời gian lưu trú:</span>
+              <span id="summary-dates">—</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Số đêm &amp; Số khách:</span>
+              <span id="summary-stay-info">—</span>
+            </div>
+          </div>
+
+          <div class="price-breakdown">
+            <div class="price-row">
+              <span>Đơn giá phòng / đêm</span>
+              <span id="summary-price-night">0 ₫</span>
+            </div>
+            <div class="price-row">
+              <span>Tổng tiền phòng</span>
+              <strong id="summary-total-amount">0 ₫</strong>
+            </div>
+            <div class="price-row paid-row" id="paid-row" style="display:none;">
+              <span>Đã thanh toán trước</span>
+              <span class="paid-val" id="summary-paid-amount">0 ₫</span>
+            </div>
+            <div class="price-row balance-row">
+              <span>Số tiền còn lại cần thanh toán</span>
+              <strong class="highlight-price" id="summary-balance-amount">0 ₫</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="card method-selection">
+          <div class="card-title">
+            <span class="step-num">2</span>
+            <h2>Chọn phương thức thanh toán</h2>
+          </div>
+          <p class="subtitle">Quý khách vui lòng chọn 1 trong 3 phương thức thanh toán dưới đây:</p>
+          <p class="bank-unavailable" id="bank-unavailable" role="status" hidden></p>
+
+          <div class="method-options">
+            <!-- 1. Đặt cọc -->
+            <label class="method-card" id="card-deposit">
+              <input type="radio" name="paymentMethod" value="Deposit">
+              <div class="method-body">
+                <div class="method-head">
+                  <span class="method-icon">💳</span>
+                  <strong>Đặt cọc trước (Chuyển khoản QR)</strong>
+                  <span class="method-tag">Khuyên dùng</span>
+                </div>
+                <p>Đặt cọc trước một phần để chắc chắn giữ phòng. Phần còn lại thanh toán khi nhận phòng tại khách sạn.</p>
+
+                <div class="deposit-options" id="deposit-options" style="display:none;">
+                  <span class="opt-label">Chọn mức đặt cọc:</span>
+                  <div class="deposit-buttons">
+                    <button type="button" class="btn-deposit active" data-percent="30">30% (<span id="dep-30-val">0 ₫</span>)</button>
+                    <button type="button" class="btn-deposit" data-percent="50">50% (<span id="dep-50-val">0 ₫</span>)</button>
+                    <button type="button" class="btn-deposit" data-percent="custom">Tùy chỉnh</button>
+                  </div>
+                  <p id="deposit-limit-note" class="subtitle"></p>
+                  <div class="custom-deposit-box" id="custom-deposit-box" style="display:none;">
+                    <label for="custom-deposit-input">Số tiền đặt cọc mong muốn (₫):</label>
+                    <input type="number" id="custom-deposit-input" min="0" step="0.01" aria-describedby="deposit-limit-note" placeholder="Nhập số tiền cọc">
+                  </div>
+                </div>
+              </div>
+            </label>
+
+            <!-- 2. Thanh toán Online 100% -->
+            <label class="method-card active" id="card-online">
+              <input type="radio" name="paymentMethod" value="Payment" checked>
+              <div class="method-body">
+                <div class="method-head">
+                  <span class="method-icon">⚡</span>
+                  <strong>Thanh toán Online toàn bộ (100% QR)</strong>
+                  <span class="method-tag gold">Nhanh &amp; Tiện</span>
+                </div>
+                <p>Thanh toán toàn bộ 100% chi phí phòng qua chuyển khoản mã QR ngân hàng. Làm thủ tục nhận phòng nhanh chóng không cần chờ đợi.</p>
+              </div>
+            </label>
+
+            <!-- 3. Thanh toán trực tiếp -->
+            <label class="method-card" id="card-direct">
+              <input type="radio" name="paymentMethod" value="Direct">
+              <div class="method-body">
+                <div class="method-head">
+                  <span class="method-icon">🏨</span>
+                  <strong>Thanh toán trực tiếp tại khách sạn</strong>
+                </div>
+                <p>Thanh toán tiền mặt hoặc thẻ tại quầy lễ tân khi quý khách đến làm thủ tục check-in nhận phòng.</p>
+              </div>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cột phải: Khung hiển thị thanh toán & Mã QR -->
+      <section class="pay-col right-col">
+        <div class="card" id="settled-section" role="status" hidden>
+          <div class="card-title"><h2>Booking không còn khoản phải thu</h2></div>
+          <p>Quý khách không cần đặt cọc hoặc thanh toán thêm cho booking này.</p>
+          <a href="/customer.html#bookings">Xem Booking của tôi</a>
+        </div>
+        <!-- Khung quét mã QR (Dành cho Online & Đặt cọc) -->
+        <div class="card qr-box" id="qr-section">
+          <div class="card-title">
+            <span class="step-num">3</span>
+            <h2>Quét mã QR để chuyển khoản</h2>
+          </div>
+          <p class="subtitle" id="qr-instruction">Mở ứng dụng Ngân hàng bất kỳ hoặc Ví điện tử để quét mã thanh toán:</p>
+
+          <div class="qr-code-wrapper">
+            <div class="qr-image-container">
+              <img id="qr-image" alt="Mã QR thanh toán ngân hàng" loading="eager" hidden>
+              <div class="qr-overlay-logo" id="qr-overlay-logo" hidden>
+                <span class="vietqr-pill">VietQR</span>
+              </div>
+              <div class="qr-status" id="qr-status" role="status" aria-live="polite" hidden>
+                <p id="qr-status-message"></p>
+                <button type="button" class="btn-copy" id="btn-retry-qr" hidden>Thử tải lại mã QR</button>
+              </div>
+            </div>
+            <div class="qr-amount-pill">
+              <span>Số tiền cần chuyển:</span>
+              <strong id="qr-pay-amount">0 ₫</strong>
+            </div>
+          </div>
+
+          <!-- Thông tin tài khoản ngân hàng của Admin -->
+          <div class="bank-info-card">
+            <div class="bank-title-row">
+              <span class="bank-badge-icon">🏦</span>
+              <div>
+                <strong id="bank-name">—</strong>
+                <small>Tài khoản nhận thanh toán chính thức của An Nhiên Resort</small>
+              </div>
+            </div>
+
+            <div class="bank-details-grid">
+              <div class="bank-item">
+                <span class="item-label">Số tài khoản:</span>
+                <div class="item-val-row">
+                  <strong class="copyable-text" id="bank-account-num">—</strong>
+                  <button type="button" class="btn-copy" data-copy="bank-account-num" title="Sao chép số tài khoản">Sao chép</button>
+                </div>
+              </div>
+
+              <div class="bank-item">
+                <span class="item-label">Chủ tài khoản:</span>
+                <div class="item-val-row">
+                  <strong id="bank-account-name">—</strong>
+                </div>
+              </div>
+
+              <div class="bank-item highlight-item">
+                <span class="item-label">Số tiền:</span>
+                <div class="item-val-row">
+                  <strong class="copyable-text" id="bank-transfer-amount">0 ₫</strong>
+                  <button type="button" class="btn-copy" data-copy="bank-transfer-amount-raw" title="Sao chép số tiền">Sao chép</button>
+                </div>
+              </div>
+
+              <div class="bank-item highlight-item">
+                <span class="item-label">Nội dung chuyển khoản (bắt buộc):</span>
+                <div class="item-val-row">
+                  <strong class="copyable-text content-text" id="bank-transfer-content">ANNHIEN ...</strong>
+                  <button type="button" class="btn-copy" data-copy="bank-transfer-content" title="Sao chép nội dung">Sao chép</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SePay Live Status Box -->
+          <div class="sepay-live-box">
+            <div class="sepay-live-header">
+              <span class="sepay-pulse-dot"></span>
+              <strong id="sepay-status-label">Đang theo dõi trạng thái thanh toán...</strong>
+            </div>
+            <p id="sepay-status-desc">Trang sẽ tự cập nhật khi có khoản thanh toán mới được ghi nhận cho đặt phòng của bạn.</p>
+          </div>
+
+          <div class="confirm-transfer-box">
+            <div id="transfer-error" class="error-text"></div>
+            <button type="button" class="btn-action primary" id="btn-confirm-transfer">
+              <span class="btn-spinner" id="btn-spinner" style="display:none;"></span>
+              <span id="btn-transfer-text">✓ Kiểm tra &amp; Xác nhận đã chuyển khoản</span>
+            </button>
+            <button type="button" class="btn-simulate" id="btn-simulate-sepay" hidden>
+              ⚡ Mô phỏng SePay nhận tiền ngay (Dành cho thử nghiệm)
+            </button>
+            <small class="transfer-help">Chỉ hiển thị khoản tiền đã được ghi nhận. Bấm kiểm tra không tự xác nhận bạn đã chuyển tiền hoặc ghi thêm khoản thu.</small>
+          </div>
+        </div>
+
+        <!-- Khung xác nhận thanh toán trực tiếp tại khách sạn (Khi chọn Trực tiếp) -->
+        <div class="card direct-box" id="direct-section" style="display:none;">
+          <div class="card-title">
+            <span class="step-num">3</span>
+            <h2>Xác nhận thanh toán tại khách sạn</h2>
+          </div>
+          <div class="direct-icon-banner">
+            <span class="direct-big-icon">🏨</span>
+            <h3>Thanh toán trực tiếp khi nhận phòng</h3>
+            <p>Quý khách không cần chuyển khoản trước. Hãy xác nhận giữ phòng và thanh toán toàn bộ chi phí khi đến khách sạn.</p>
+          </div>
+
+          <div class="direct-notice-list">
+            <div class="notice-item">
+              <span class="dot">✓</span>
+              <span>Phòng sẽ được giữ cho quý khách đến ngày nhận phòng theo thông tin đặt chỗ.</span>
+            </div>
+            <div class="notice-item">
+              <span class="dot">✓</span>
+              <span>Hỗ trợ thanh toán bằng <strong>tiền mặt</strong> hoặc <strong>quẹt thẻ ngân hàng (ATM/Visa/MasterCard)</strong> tại quầy lễ tân.</span>
+            </div>
+            <div class="notice-item">
+              <span class="dot">✓</span>
+              <span>Số tiền cần thanh toán khi check-in: <strong class="text-green" id="direct-pay-amount">0 ₫</strong></span>
+            </div>
+          </div>
+
+          <div class="confirm-transfer-box">
+            <label for="direct-note-input">Ghi chú thêm cho lễ tân (tùy chọn):</label>
+            <input type="text" id="direct-note-input" placeholder="Ví dụ: Giờ dự kiến tới khách sạn, yêu cầu đặc biệt..." maxlength="100">
+            <div id="direct-error" class="error-text"></div>
+            <button type="button" class="btn-action primary" id="btn-confirm-direct">
+              ✓ Xác nhận đặt phòng &amp; Thanh toán tại quầy
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- BẢNG THÀNH CÔNG (SUCCESS BOARD / MODAL) -->
+  <dialog id="success-dialog" class="success-dialog">
+    <div class="success-card">
+      <div class="success-header">
+        <div class="checkmark-circle">
+          <svg class="checkmark-svg" viewBox="0 0 52 52">
+            <circle class="checkmark-circle-bg" cx="26" cy="26" r="25" fill="none"/>
+            <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+          </svg>
+        </div>
+        <h2 id="suc-title">Đã ghi nhận khoản thanh toán</h2>
+        <p class="success-subtitle">Cảm ơn quý khách đã tin tưởng lựa chọn An Nhiên Hotel &amp; Resort.</p>
+      </div>
+
+      <div class="success-body">
+        <div class="success-tag-box">
+          <span class="tag-title">DỮ LIỆU ĐÃ ĐỒNG BỘ VÀO HỆ THỐNG QUẢN LÝ</span>
+          <p>Lễ tân và quản trị viên khách sạn đã nhận được thông tin đặt chỗ &amp; thanh toán của quý khách.</p>
+        </div>
+
+        <div class="success-summary-grid">
+          <div class="s-row">
+            <span>Mã đặt phòng:</span>
+            <strong id="suc-booking-id">#...</strong>
+          </div>
+          <div class="s-row">
+            <span>Khách hàng:</span>
+            <strong id="suc-guest-name">—</strong>
+          </div>
+          <div class="s-row">
+            <span>Phòng nghỉ:</span>
+            <strong id="suc-room-name">Phòng —</strong>
+          </div>
+          <div class="s-row">
+            <span>Thời gian:</span>
+            <span id="suc-dates">—</span>
+          </div>
+          <div class="s-row">
+            <span>Hình thức thanh toán:</span>
+            <span class="badge-success-type" id="suc-payment-type">—</span>
+          </div>
+          <div class="s-row">
+            <span>Phương thức:</span>
+            <span id="suc-payment-method">—</span>
+          </div>
+          <div class="s-row highlight-s-row">
+            <span>Số tiền đã ghi nhận:</span>
+            <strong class="text-green" id="suc-paid-now">0 ₫</strong>
+          </div>
+          <div class="s-row">
+            <span>Còn lại cần thanh toán:</span>
+            <strong id="suc-remaining-due">0 ₫</strong>
+          </div>
+          <div class="s-row" id="suc-ref-row">
+            <span>Mã tham chiếu / Ghi chú:</span>
+            <small id="suc-ref-code">—</small>
+          </div>
+        </div>
+
+        <div class="resort-policy-note">
+          <strong>Lưu ý nhận phòng:</strong>
+          <p>Giờ nhận phòng tiêu chuẩn từ 14:00. Quý khách vui lòng xuất trình CCCD/Hộ chiếu khi làm thủ tục tại quầy lễ tân An Nhiên Hotel &amp; Resort.</p>
+        </div>
+      </div>
+
+      <div class="success-footer">
+        <button type="button" class="btn-suc secondary" id="btn-print-confirmation">🖨 In / Lưu phiếu xác nhận</button>
+        <button type="button" class="btn-suc primary" id="btn-back-home">Về trang chủ khách sạn</button>
+      </div>
+    </div>
+  </dialog>
+
+  <footer class="pay-footer">
+    <p>An Nhiên Hotel &amp; Resort · Đường Võ Nguyên Giáp, Biển Mỹ Khê, Đà Nẵng · Hotline: 1900 6868</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tài khoản khách hàng · An Nhiên</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" href="/hotel-favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/fonts.css?v=20261027-portal-2">
+  <link rel="stylesheet" href="/hotel.css?v=20261027-portal-2">
+  <link rel="stylesheet" href="/customer-portal.css?v=20261028-account-1">
+  <script src="/api-errors.js?v=20261027-portal-2" defer></script>
+  <script src="/hotel-time.js?v=20261027-deploy-1" defer></script>
+  <script src="/customer-auth.js?v=20261028-account-1" defer></script>
+  <script src="/guest-operations.js?v=20261027-portal-2" defer></script>
+  <script src="/customer-portal.js?v=20261028-account-1" defer></script>
+</head>
+<body class="portal" data-customer-portal="true">
+  <header class="portal-topbar">
+    <div class="portal-topbar-inner">
+      <a class="portal-brand" href="/hotel.html">An Nhiên<small>HOTEL &amp; RESORT</small></a>
+      <span class="portal-header-divider" aria-hidden="true"></span><span class="portal-header-title">Tài khoản của tôi</span>
+      <nav aria-label="Website khách sạn"><a href="/hotel.html">Trang chủ</a><a href="/hotel.html#rooms">Đặt phòng</a><a href="/hotel.html#contact">Liên hệ hỗ trợ <span aria-hidden="true">↗</span></a></nav>
+    </div>
+  </header>
+  <div class="portal-shell">
+    <aside class="portal-sidebar" id="portal-sidebar" hidden>
+      <div class="portal-account"><button type="button" class="portal-avatar" data-portal-action="profile-edit" aria-label="Cập nhật hồ sơ" hidden></button><div><strong id="portal-user"></strong><button type="button" class="portal-edit-link" data-portal-action="profile-edit">Sửa hồ sơ <span aria-hidden="true">↗</span></button></div></div>
+      <nav aria-label="Tài khoản khách hàng">
+        <a href="#profile" data-portal-view="profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg>Tài khoản của tôi</a>
+        <a href="#bookings" data-portal-view="bookings"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="18" rx="2"/><path d="M8 2v4m8-4v4M8 11h8m-8 5h6"/></svg>Đặt phòng của tôi</a>
+        <a href="#requests" data-portal-view="requests"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h15l-4-4M20 17H5l4 4M4 7v5m16 5v-5"/></svg>Yêu cầu đổi / hủy</a>
+      </nav>
+      <div class="portal-sidebar-bottom"><a href="/hotel.html#rooms">Khám phá phòng <span aria-hidden="true">↗</span></a><button type="button" data-portal-action="logout">Đăng xuất</button></div>
+    </aside>
+    <div class="portal-workspace">
+      <main id="portal-main" class="portal-main" aria-busy="true"><div class="portal-loading" role="status">Đang tải tài khoản của bạn…</div></main>
+    </div>
+  </div>
+  <footer class="portal-footer"><span>An Nhiên Hotel &amp; Resort</span><span>Một kỳ nghỉ an yên, từ những điều nhỏ nhất.</span><a href="/hotel.html#contact">Bạn cần hỗ trợ?</a></footer>
+  <div id="customer-actions" hidden style="display:none"></div>
+  <dialog id="customer-dialog" aria-label="Tài khoản và yêu cầu của khách hàng"></dialog>
+  <div id="site-toast" role="status" aria-live="polite"></div>
+</body>
+</html>

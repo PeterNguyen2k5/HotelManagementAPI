@@ -1,0 +1,31 @@
+groups:
+  - name: hotel
+    rules:
+      - alert: HotelUnavailable
+        expr: up{job="hotel"} == 0 or hotel_ready == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Hotel metrics endpoint is unavailable
+      - alert: HotelApiErrors
+        expr: increase(hotel_api_requests_total{status_class="5xx"}[5m]) >= 3
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: At least three API server errors in five minutes
+      - alert: HotelBackgroundFailure
+        expr: increase(hotel_background_failures_total[15m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: A backup or recovery email operation failed
+      - alert: HotelBackupStale
+        expr: time() - hotel_last_backup_success_timestamp_seconds > 93600
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: No successful database backup recorded for more than 26 hours

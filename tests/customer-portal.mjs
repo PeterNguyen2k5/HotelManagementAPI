@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+assert.equal(process.env.HOTEL_TEST_ISOLATED,'1');
+const base=process.env.HOTEL_URL;let admin,checks=0;
+async function api(method,route,body,status=200,token=admin){
+ const r=await fetch(base+route,{method,headers:{...(body===undefined?{}:{'content-type':'application/json'}),...(token?{authorization:'Bearer '+token}:{})},body:body===undefined?undefined:JSON.stringify(body)});
+ assert.equal(r.status,status,`${method} ${route}: expected ${status}, got ${r.status}`);checks++;return r.status===204?null:r.json();
+}
+admin=(await api('POST','/api/Auth/login',{username:'admin',password:'Fixture-admin-final-123!'},200,'')).token;
+const register=(username)=>api('POST','/api/CustomerAuth/register',{username,password:'Guest12345',fullName:username,phone:'0901234567',email:username+'@example.test'},201,'');
+const first=await register('portalguest'),other=await register('portalother');
+const type=await api('POST','/api/RoomTypes',{name:'Portal test'},201);
+const rooms=[];for(let i=0;i<8;i++)rooms.push(await api('POST','/api/Rooms',{roomNumber:'PORTAL'+i,roomTypeId:type.id,price:500000,capacity:2},201));
+const day=n=>{const d=new Date();d.setDate(d.getDate()+n);return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(d)};
+const bookings=[];
+for(let i=0;i<7;i++)bookings.push(await api('POST','/api/Bookings',{customerId:first.account.customerId,roomId:rooms[i].id,guestCount:2,checkInDate:day(i<2?0:3),checkOutDate:day(i<2?1:5)},201));
+const foreign=await api('POST','/api/Bookings',{customerId:other.account.customerId,roomId:rooms[7].id,guestCount:2,checkInDate:day(3),checkOutDate:day(5)},201);
+await api('POST','/api/Bookings/'+bookings[0].id+'/check-in');
+await api('POST','/api/Bookings/'+bookings[1].id+'/check-in');
+const service=await api('POST','/api/Services',{name:'Portal service',unit:'Lần',price:15.5},201);
+await api('POST','/api/Services/usage',{requestId:randomUUID(),bookingId:bookings[1].id,serviceId:service.id,quantity:2},201);
+await api('POST','/api/BookingOperations/'+bookings[1].id+'/payments',{type:'Payment',method:'Cash',amount:100,requestId:randomUUID()});
+await api('POST','/api/Bookings/'+bookings[1].id+'/check-out');
+await api('POST','/api/BookingOperations/'+bookings[2].id+'/payments',{type:'Deposit',method:'Cash',amount:100,requestId:randomUUID()});
+await api('POST','/api/Bookings/'+bookings[2].id+'/cancel');
+await api('POST','/api/BookingRequests/'+bookings[3].id,{type:'Cancel',reason:'Yêu cầu thử trên tài khoản riêng'},201,first.token);
+for(const url of ['/api/CustomerPortal/summary','/api/CustomerPortal/bookings','/api/CustomerPortal/bookings/'+bookings[1].id]){
+ await api('GET',url,undefined,401,'');await api('GET',url,undefined,403,admin);
+}
+let data=await api('GET','/api/CustomerPortal/bookings?pageSize=3&pageNumber=1',undefined,200,first.token);
+assert.equal(data.totalCount,7);assert.equal(data.items.length,3);assert.equal(data.totalPages,3);
+assert.ok(data.items.every(x=>x.booking.customerId===first.account.customerId));
+data=await api('GET','/api/CustomerPortal/bookings?pageSize=3&pageNumber=3',undefined,200,first.token);assert.equal(data.items.length,1);
+data=await api('GET','/api/CustomerPortal/bookings?customerId='+other.account.customerId,undefined,200,first.token);assert.equal(data.totalCount,7);
+assert.equal((await api('GET','/api/CustomerPortal/bookings?pageNumber=2147483647',undefined,200,first.token)).items.length,0);
+const summary=await api('GET','/api/CustomerPortal/summary',undefined,200,first.token);
+assert.equal(summary.totalBookings,7);assert.equal(summary.reserved,4);assert.equal(summary.checkedIn,1);assert.equal(summary.checkedOut,1);assert.equal(summary.cancelled,1);assert.equal(summary.pendingRequests,1);assert.equal(summary.paidAmount,200);assert.equal(summary.refundDue,100);
+const own=await api('GET','/api/CustomerPortal/bookings/'+bookings[1].id,undefined,200,first.token);
+assert.equal(own.services.length,1);assert.equal(own.services[0].total,31);assert.equal(own.payments.length,1);assert.equal(own.balance.due,499931);assert.equal(own.canViewInvoice,true);assert.equal(own.canRequestChangeOrCancel,false);assert.equal(own.booking.status,'CheckedOut');
+assert.equal(own.contact.fullName,first.account.fullName);assert.equal(own.roomTypeName,type.name);
+const pending=await api('GET','/api/CustomerPortal/bookings/'+bookings[3].id,undefined,200,first.token);
+assert.equal(pending.requests.length,1);assert.equal(pending.canRequestChangeOrCancel,false);
+const reserved=await api('GET','/api/CustomerPortal/bookings/'+bookings[4].id,undefined,200,first.token);assert.equal(reserved.canRequestChangeOrCancel,true);assert.equal(reserved.canViewInvoice,false);
+const cancelled=await api('GET','/api/CustomerPortal/bookings/'+bookings[2].id,undefined,200,first.token);assert.equal(cancelled.balance.refundDue,100);assert.equal(cancelled.canPay,false);assert.equal(cancelled.canRequestChangeOrCancel,false);
+await api('GET','/api/CustomerPortal/bookings/'+foreign.id,undefined,404,first.token);await api('GET','/api/CustomerPortal/bookings/'+bookings[0].id,undefined,404,other.token);
+await api('GET','/api/CustomerPortal/bookings/2147483647',undefined,404,first.token);
+const filtered=await api('GET','/api/CustomerPortal/bookings?status=Reserved&keyword='+rooms[4].roomNumber+'&fromDate='+day(4)+'&toDate='+day(4),undefined,200,first.token);assert.equal(filtered.totalCount,1);assert.equal(filtered.items[0].booking.id,bookings[4].id);
+assert.equal((await api('GET','/api/CustomerPortal/bookings?keyword=%23'+foreign.id,undefined,200,first.token)).totalCount,0);
+assert.equal((await api('GET','/api/CustomerPortal/bookings?status=CheckedOut',undefined,200,first.token)).totalCount,1);
+for(const query of ['status=Wrong','pageNumber=0','pageSize=101','fromDate='+day(5)+'&toDate='+day(3),'toDate=9999-12-31','keyword='+('x'.repeat(101))])await api('GET','/api/CustomerPortal/bookings?'+query,undefined,400,first.token);
+const otherSummary=await api('GET','/api/CustomerPortal/summary',undefined,200,other.token);assert.equal(otherSummary.totalBookings,1);assert.equal(otherSummary.pendingRequests,0);assert.equal(otherSummary.paidAmount,0);
+const page=await fetch(base+'/customer.html');assert.equal(page.status,200);assert.match(await page.text(),/customer-portal.js/);
+await api('POST','/api/CustomerAuth/change-password',{oldPassword:'Guest12345',newPassword:'Updated12345'},200,first.token);
+await api('GET','/api/CustomerPortal/summary',undefined,401,first.token);
+console.log(`PASS: ${checks} customer portal API checks: ownership, staff/anonymous denial, accurate totals, service/payment detail, request capabilities, filtering/paging, validation and revoked JWT.`);
