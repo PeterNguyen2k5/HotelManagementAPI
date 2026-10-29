@@ -167,11 +167,26 @@ action=async function(name,id){
   const requestId=crypto.randomUUID();
   modalForm('Thu / Hoàn tiền #'+id,[{name:'type',label:'Loại giao dịch',options,required:true},{name:'method',label:'Phương thức',options:[['Cash','Tiền mặt'],['Transfer','Chuyển khoản']],required:true},
    {name:'amount',label:'Số tiền',type:'number',value:p.balance.due||p.balance.refundDue,min:0.01,max:p.balance.due||p.balance.refundDue,required:true,help:'Cần thu: '+money(p.balance.due)+' · Cần hoàn: '+money(p.balance.refundDue)},
-   {name:'reference',label:'Mã giao dịch ngân hàng / ghi chú tiền mặt',help:'Với chuyển khoản, nhập chính xác mã giao dịch từ ngân hàng, không nhập nội dung chuyển tiền. '+(bank.bankConfigured?'Tài khoản nhận: '+bank.bankName+' · '+bank.accountNumber+'.':'Chưa tải được tài khoản nhận chuyển khoản.')}],{},v=>{
+   {name:'reference',label:'Mã giao dịch ngân hàng / ghi chú tiền mặt',help:'Với chuyển khoản, nhập chính xác mã giao dịch từ ngân hàng, không nhập nội dung chuyển tiền. '+(bank.bankConfigured?'Tài khoản nhận: '+bank.bankName+' · '+bank.accountNumber+'.':'Chưa tải được tài khoản nhận chuyển khoản.')},
+   {name:'bankId',label:'Ngân hàng chi hoàn tiền',value:bank.bankId||'',help:'Mã ngân hàng của tài khoản khách sạn đã chi tiền, ví dụ MB hoặc VCB.'},
+   {name:'bankAccountNumber',label:'Tài khoản khách sạn đã chi hoàn tiền',value:bank.accountNumber||'',help:'Đối chiếu chứng từ chuyển đi. Không nhập tài khoản khách nhận tiền.'}],{},v=>{
     const incoming=v.method==='Transfer'&&v.type!=='Refund';
     if(incoming&&!bank.bankConfigured)throw new Error('Chưa có thông tin tài khoản nhận. Hãy kiểm tra cấu hình ngân hàng rồi mở lại form.');
-    return api('/api/BookingOperations/'+id+'/payments',{method:'POST',body:{...v,requestId,...(incoming?{bankId:bank.bankId,bankAccountNumber:bank.accountNumber}:{})}});
-   },form=>{form.elements.namedItem('reference').maxLength=200;});return;
+    const outgoing=v.method==='Transfer'&&v.type==='Refund';
+    const body={type:v.type,method:v.method,amount:v.amount,reference:v.reference,requestId};
+    if(incoming)Object.assign(body,{bankId:bank.bankId,bankAccountNumber:bank.accountNumber});
+    if(outgoing){
+     if(!v.bankId.trim()||!v.bankAccountNumber.trim())throw new Error('Hãy nhập ngân hàng và tài khoản khách sạn đã chi hoàn tiền.');
+     Object.assign(body,{bankId:v.bankId.trim(),bankAccountNumber:v.bankAccountNumber.trim()});
+    }
+    return api('/api/BookingOperations/'+id+'/payments',{method:'POST',body});
+   },form=>{
+    form.elements.namedItem('reference').maxLength=200;
+    const update=()=>{const outgoing=form.elements.namedItem('type').value==='Refund'&&form.elements.namedItem('method').value==='Transfer';
+     for(const name of ['bankId','bankAccountNumber']){const input=form.elements.namedItem(name);input.maxLength=50;input.closest('.field').hidden=!outgoing;input.required=outgoing;}
+    };
+    form.elements.namedItem('type').addEventListener('change',update);form.elements.namedItem('method').addEventListener('change',update);update();
+   });return;
  }
  if(name==='bank-config'){
   const cfg=await api('/api/BookingOperations/bank-config');

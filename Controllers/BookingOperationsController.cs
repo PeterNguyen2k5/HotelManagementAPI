@@ -53,12 +53,14 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
                 return Ok(PaymentView(duplicate));
             var b=await ApiSupport.FullBookings(db).FirstOrDefaultAsync(x=>x.Id==id);
             if(b is null)return NotFound();
-            if (request.Method == "Transfer" && request.Type != "Refund")
+            if (request.Method == "Transfer")
             {
                 var config = LoadBankConfig();
                 if (!config.IsConfigured)
                     return StatusCode(503, new { message = "Hãy cấu hình tài khoản ngân hàng nhận tiền trước khi ghi chuyển khoản." });
-                var payment = await reconciliation.RecordManualTransfer(b, request, config, User.Identity?.Name ?? "Staff");
+                var payment = request.Type == "Refund"
+                    ? await reconciliation.RecordRefundTransfer(b, request, config, User.Identity?.Name ?? "Staff")
+                    : await reconciliation.RecordManualTransfer(b, request, config, User.Identity?.Name ?? "Staff");
                 await db.SaveChangesAsync(); await tx.CommitAsync();
                 return Ok(PaymentView(payment));
             }
@@ -286,6 +288,8 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
                 SHA256.HashData(Encoding.UTF8.GetBytes(authorization[7..])))) return Unauthorized();
         if (!string.Equals(request.AccountNumber, config.AccountNumber, StringComparison.Ordinal))
             return BadRequest(new { message = "Tài khoản nhận tiền không khớp cấu hình." });
+        if (!BankIdentity.Matches(config.BankId, request.Gateway))
+            return BadRequest(new { message = "Ngân hàng của giao dịch không khớp hoặc chưa nhận diện được. Kiểm tra gateway SePay và ngân hàng đã cấu hình." });
         if (string.Equals(request.TransferType, "out", StringComparison.OrdinalIgnoreCase))
             return Ok(new { success = true, message = "Bỏ qua giao dịch tiền ra." });
         // Fail closed: only a confirmed incoming transfer may reach payment recording.

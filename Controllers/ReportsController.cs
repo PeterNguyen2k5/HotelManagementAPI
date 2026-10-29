@@ -61,7 +61,7 @@ public sealed class ReportsController(HotelDbContext db) : ControllerBase
         var end = to!.Value.Date.AddDays(1);
         var usages = await CheckedOutBookings(start, end)
             .SelectMany(x => x.ServiceUsages).Include(x => x.Service).ToListAsync();
-        return Ok(usages.GroupBy(x => new { x.ServiceId, x.Service.Name })
+        return Ok(usages.GroupBy(x => new { x.ServiceId, Name = x.ServiceName })
             .Select(group => new
             {
                 serviceId = group.Key.ServiceId, name = group.Key.Name,

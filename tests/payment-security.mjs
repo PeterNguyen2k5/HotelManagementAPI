@@ -68,7 +68,7 @@ const development=process.env.HOTEL_TEST_ENV==='Development';
 await api('POST',simulation,{amount:50000},development?200:404);
 assert.equal((await api('GET','/api/BookingOperations/bank-config')).canSimulate,development);
 assert.equal((await api('GET','/api/BookingOperations/bank-config',undefined,200,guest.token)).canSimulate,false);
-const webhook={id:1,transferType:'in',transferAmount:100.99,accountNumber:'0000000000',content:'ANNHIEN '+booking.id};
+const webhook={id:1,gateway:'MBBank',transferType:'in',transferAmount:100.99,accountNumber:'0000000000',content:'ANNHIEN '+booking.id};
 await api('POST','/api/BookingOperations/sepay-webhook',webhook,503,'');
 const key=randomBytes(24).toString('hex');
 const config={bankId:'MB',bankName:'Test bank',accountNumber:'0000000000',accountName:'TEST ONLY',sepayApiKey:key};

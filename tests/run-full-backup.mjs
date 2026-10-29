@@ -80,9 +80,9 @@ try{
  assert.equal((await api('GET',`/api/BookingOperations/${booking.id}/payments`,undefined,200,admin,restoredBase)).data.balance.paid,25000);
  assert.ok(Buffer.from(await (await fetch(restoredBase+imageUrl)).arrayBuffer()).equals(image));checks++;
  const restoredBank=(await api('GET','/api/BookingOperations/bank-config',undefined,200,null,restoredBase)).data;assert.equal(restoredBank.accountNumber,bank.accountNumber);assert.ok(!JSON.stringify(restoredBank).includes(bankKey));
- await api('POST','/api/BookingOperations/sepay-webhook',{id:123456,accountNumber:bank.accountNumber,transferType:'out',transferAmount:1},401,null,restoredBase);
+ await api('POST','/api/BookingOperations/sepay-webhook',{id:123456,gateway:'MBBank',accountNumber:bank.accountNumber,transferType:'out',transferAmount:1},401,null,restoredBase);
  {
-  const r=await fetch(restoredBase+'/api/BookingOperations/sepay-webhook',{method:'POST',headers:{'content-type':'application/json',Authorization:'Apikey '+bankKey},body:JSON.stringify({id:123456,accountNumber:bank.accountNumber,transferType:'out',transferAmount:1})});assert.equal(r.status,200);checks++;
+  const r=await fetch(restoredBase+'/api/BookingOperations/sepay-webhook',{method:'POST',headers:{'content-type':'application/json',Authorization:'Apikey '+bankKey},body:JSON.stringify({id:123456,gateway:'MBBank',accountNumber:bank.accountNumber,transferType:'out',transferAmount:1})});assert.equal(r.status,200);checks++;
  }
  await api('GET','/api/CustomerAuth/me',undefined,200,guest.token,restoredBase);
  await api('POST','/api/CustomerAuth/reset-password',{token:resetToken,newPassword:'Fixture-restored-reset-456!'},200,null,restoredBase);

@@ -113,6 +113,7 @@ public sealed class HotelService
 
 public sealed class ServiceUsage
 {
+    [MaxLength(100)] public string ServiceName { get; set; } = "";
     public int Id { get; set; }
     public int BookingId { get; set; }
     public Booking Booking { get; set; } = null!;

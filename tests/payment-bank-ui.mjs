@@ -149,7 +149,7 @@ try{
  // New incoming payments refresh the authoritative balance; never subtract them twice.
  await open(partial.id);
  const incoming=async(id,amount)=>{
-  const response=await fetch(base+'/api/BookingOperations/sepay-webhook',{method:'POST',headers:{'content-type':'application/json',authorization:'Apikey isolated-deposit-webhook-key'},body:JSON.stringify({id,transferType:'in',transferAmount:amount,accountNumber:config.accountNumber,content:'ANNHIEN '+partial.id})});
+  const response=await fetch(base+'/api/BookingOperations/sepay-webhook',{method:'POST',headers:{'content-type':'application/json',authorization:'Apikey isolated-deposit-webhook-key'},body:JSON.stringify({id,gateway:'MBBank',transferType:'in',transferAmount:amount,accountNumber:config.accountNumber,content:'ANNHIEN '+partial.id})});
   assert.equal(response.status,200);return response.json();
  };
  await incoming(901,50000);

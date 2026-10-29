@@ -70,7 +70,7 @@ try{
  for(const row of stored)assert.match(row.RequestId,/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
 
  // The UUID of a manual operation must remain bound when its result was created by a webhook.
- const adopted=await booking();await api('POST','/api/BookingOperations/sepay-webhook',{id:90001,accountNumber:bank.accountNumber,transferType:'in',transferAmount:25000,content:'ANNHIEN '+adopted.id,referenceCode:'UUID-ADOPTED'},200,null,{Authorization:'Apikey '+key});
+ const adopted=await booking();await api('POST','/api/BookingOperations/sepay-webhook',{id:90001,gateway:'MBBank',accountNumber:bank.accountNumber,transferType:'in',transferAmount:25000,content:'ANNHIEN '+adopted.id,referenceCode:'UUID-ADOPTED'},200,null,{Authorization:'Apikey '+key});
  const adoptedBody=data({method:'Transfer',reference:'UUID-ADOPTED',requestId:randomUUID().toUpperCase()}),adoptedPayment=(await pay(adopted.id,adoptedBody)).data;
  assert.equal((await pay(adopted.id,{...adoptedBody,requestId:adoptedBody.requestId.toLowerCase()})).data.id,adoptedPayment.id);
  await pay(other.id,{...adoptedBody,requestId:adoptedBody.requestId.toLowerCase(),reference:'DIFFERENT'},409);
