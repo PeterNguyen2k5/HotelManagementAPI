@@ -155,7 +155,7 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
     {
         await holds.Reap();
         Response.Headers.CacheControl = "no-store";
-        var b = await ApiSupport.FullBookings(db).AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        var b = await ApiSupport.FullBookings(db).AsNoTracking().Include(x => x.Room).ThenInclude(x => x.RoomType).FirstOrDefaultAsync(x => x.Id == id);
         if (b is null) return NotFound(new { message = "Không tìm thấy thông tin đặt phòng." });
         if (!await CanAccess(b)) return NotFound();
         var balance = HotelWorkflow.Balance(b);
@@ -178,9 +178,36 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
             status = b.Status,
             paymentDueAtUtc = BookingHolds.Utc(b.PaymentDueAtUtc), holdExpiredAtUtc = BookingHolds.Utc(b.HoldExpiredAtUtc),
             awaitingPayment = BookingHolds.AwaitingPayment(b), serverTimeUtc = clock.GetUtcNow(),
+            canCancelHold = User.IsInRole(Roles.Customer) && b.Status == BookingStates.Reserved && !BookingHolds.HasReceipt(b),
+            canRequestCancellation = User.IsInRole(Roles.Customer) && b.Status == BookingStates.Reserved,
+            hasPendingRequest = await db.BookingRequests.AnyAsync(x => x.BookingId == id && x.Status == "Pending"),
             balance,
             payments = b.Payments.OrderBy(x => x.Id).Select(PaymentView)
         });
+    }
+
+    [HttpPost("{id:int}/cancel-hold"), Authorize(Roles = Roles.Customer)]
+    public async Task<IActionResult> CancelHold(int id)
+    {
+        try
+        {
+            await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var customerId = await db.CustomerAccounts.Where(x => x.Id == accountId && x.IsActive).Select(x => x.CustomerId).FirstAsync();
+            var booking = await ApiSupport.FullBookings(db).FirstOrDefaultAsync(x => x.Id == id && x.CustomerId == customerId);
+            if (booking is null) return NotFound();
+            if (booking.Status == BookingStates.Cancelled)
+                return Ok(new { booking = ApiSupport.BookingView(booking), message = "Booking đã hủy." });
+            if (booking.Status != BookingStates.Reserved)
+                return Conflict(new { message = "Chỉ booking chưa nhận phòng mới được hủy giữ chỗ." });
+            if (BookingHolds.HasReceipt(booking))
+                return Conflict(new { message = "Booking đã nhận tiền. Vui lòng gửi yêu cầu hủy để lễ tân kiểm tra và xử lý khoản cần hoàn." });
+            if (!await holds.TryExpire(booking)) await workflow.Cancel(booking);
+            await db.SaveChangesAsync(); await tx.CommitAsync();
+            return Ok(new { booking = ApiSupport.BookingView(booking), message = "Đã hủy giữ chỗ và mở lại phòng. Nếu bạn vừa chuyển khoản, hãy liên hệ lễ tân để đối soát." });
+        }
+        catch (Exception ex) when (ApiSupport.Busy(ex))
+        { return Conflict(new { message = "Booking đang được cập nhật. Hãy tải lại trạng thái trước khi thử tiếp." }); }
     }
 
     [HttpPost("{id:int}/customer-payment"), Authorize(Roles = Roles.Customer + "," + Roles.Staff)]
@@ -281,6 +308,9 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
             status = b.Status,
             paymentDueAtUtc = BookingHolds.Utc(b.PaymentDueAtUtc), holdExpiredAtUtc = BookingHolds.Utc(b.HoldExpiredAtUtc),
             awaitingPayment = BookingHolds.AwaitingPayment(b), serverTimeUtc = clock.GetUtcNow(),
+            canCancelHold = User.IsInRole(Roles.Customer) && b.Status == BookingStates.Reserved && !BookingHolds.HasReceipt(b),
+            canRequestCancellation = User.IsInRole(Roles.Customer) && b.Status == BookingStates.Reserved,
+            hasPendingRequest = await db.BookingRequests.AnyAsync(x => x.BookingId == id && x.Status == "Pending"),
             latestPayment = latestPayment != null ? PaymentView(latestPayment) : null
         });
     }

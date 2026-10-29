@@ -273,7 +273,7 @@ async function checkSepayPaymentStatus(interactive = false) {
     const status = await fetchJSON('/api/BookingOperations/' + booking.id + '/payment-status');
     if (isPaymentCompleted) return false;
     const previousPaid = Number(booking.balance?.paid) || 0;
-    Object.assign(booking, { status:status.status, paymentDueAtUtc:status.paymentDueAtUtc, holdExpiredAtUtc:status.holdExpiredAtUtc, awaitingPayment:status.awaitingPayment, serverTimeUtc:status.serverTimeUtc });
+    Object.assign(booking, { status:status.status, paymentDueAtUtc:status.paymentDueAtUtc, holdExpiredAtUtc:status.holdExpiredAtUtc, awaitingPayment:status.awaitingPayment, serverTimeUtc:status.serverTimeUtc, canCancelHold:status.canCancelHold, canRequestCancellation:status.canRequestCancellation, hasPendingRequest:status.hasPendingRequest });
     window.bookingHold.sync(status.serverTimeUtc);
     renderPaymentHold();
     const newlyReceived = status.paid > previousPaid;
@@ -582,11 +582,23 @@ document.getElementById('btn-back-home')?.addEventListener('click', () => {
 function renderPaymentHold() {
   const element = document.getElementById('payment-hold-notice');
   if (element) {
-    const markup = window.bookingHold.markup(booking);
+    let markup = window.bookingHold.markup(booking);
+    if (!markup && booking.status === 'Cancelled') markup = '<p class="booking-hold expired">Booking đã hủy. Vui lòng đặt phòng mới; nếu bạn vừa chuyển khoản, hãy liên hệ lễ tân để đối soát.</p>';
+    else if (!markup && booking.status === 'Reserved') markup = '<p class="payment-deadline-info">'+(booking.paymentDueAtUtc ? 'Đã ghi nhận tiền cọc / thanh toán. Booking của bạn được giữ và không còn đếm ngược hủy tự động.' : 'Booking này không áp dụng thời hạn tự hủy. Hạn thanh toán 30 phút áp dụng cho giữ chỗ mới tạo trên website.')+'</p>';
+    else if (!markup) markup = '<p class="payment-deadline-info">Booking '+paymentEscape(booking.status==='CheckedIn'?'đang lưu trú':'đã kết thúc')+'; không áp dụng thời hạn giữ chỗ 30 phút.</p>';
     if (element.dataset.holdMarkup !== markup) {
       element.dataset.holdMarkup = markup; element.innerHTML = markup;
     }
     window.bookingHold.tick();
+  }
+  const cancelButton = document.getElementById('btn-cancel-booking');
+  if (cancelButton) {
+    cancelButton.hidden = !booking.canRequestCancellation;
+    cancelButton.textContent = booking.canCancelHold ? 'Hủy giữ chỗ' : 'Yêu cầu hủy';
+    cancelButton.disabled = paymentCancellationBusy || !booking.canCancelHold && booking.hasPendingRequest;
+    document.getElementById('payment-cancel-status').textContent = paymentCancellationError || (booking.canRequestCancellation
+      ? booking.canCancelHold ? 'Chưa ghi nhận tiền: bạn có thể hủy ngay để trả phòng về danh sách trống.'
+        : booking.hasPendingRequest ? 'Yêu cầu đổi / hủy đang chờ lễ tân xử lý.' : 'Đã ghi nhận tiền: yêu cầu hủy sẽ được lễ tân xem xét và xử lý khoản cần hoàn.' : '');
   }
 }
 window.addEventListener('booking-hold-expired', () => {
@@ -597,3 +609,55 @@ window.addEventListener('booking-hold-expired', () => {
 });
 
 setInterval(() => { if (booking?.awaitingPayment && !pollTimer && !document.hidden) checkSepayPaymentStatus(); }, 15000);
+
+let paymentCancellationBusy = false;
+let paymentCancellationError = '';
+let cancellationMode = null;
+const cancellationDialog = document.getElementById('cancel-booking-dialog');
+document.getElementById('btn-cancel-booking')?.addEventListener('click', async () => {
+  if (paymentCancellationBusy) return;
+  paymentCancellationError = ''; paymentCancellationBusy = true; renderPaymentHold();
+  try {
+    booking = await fetchJSON('/api/BookingOperations/'+booking.id+'/public-info');
+    renderBookingData();
+    if (!booking.canRequestCancellation || !booking.canCancelHold && booking.hasPendingRequest) return;
+    cancellationMode = booking.canCancelHold ? 'hold' : 'request';
+    document.getElementById('cancel-booking-title').textContent = cancellationMode==='hold'?'Hủy giữ chỗ #'+booking.id+'?':'Yêu cầu hủy booking #'+booking.id;
+    document.getElementById('cancel-booking-description').textContent = cancellationMode==='hold'
+      ? 'Bạn chưa có khoản thu được ghi nhận. Xác nhận sẽ hủy booking và mở lại phòng ngay. Nếu bạn vừa chuyển khoản, hãy liên hệ lễ tân để đối soát.'
+      : 'Khách sạn đã ghi nhận tiền. Yêu cầu sẽ được lễ tân duyệt và xử lý khoản cần hoàn; booking vẫn giữ trong khi chờ phản hồi.';
+    document.getElementById('cancel-reason-label').hidden = cancellationMode==='hold';
+    document.getElementById('cancel-booking-reason').required = cancellationMode==='request';
+    document.getElementById('cancel-booking-reason').value = '';
+    document.getElementById('cancel-booking-error').textContent = '';
+    document.getElementById('btn-submit-cancel').textContent = cancellationMode==='hold'?'Xác nhận hủy':'Gửi yêu cầu hủy';
+    cancellationDialog.showModal();
+    document.getElementById('btn-keep-booking').focus();
+  } catch(e) { paymentCancellationError = e.message; }
+  finally { paymentCancellationBusy = false; renderPaymentHold(); }
+});
+document.getElementById('btn-keep-booking')?.addEventListener('click', () => cancellationDialog.close());
+cancellationDialog?.addEventListener('cancel', event => { if(paymentCancellationBusy) event.preventDefault(); });
+document.getElementById('cancel-booking-form')?.addEventListener('submit', async event => {
+  event.preventDefault(); if (paymentCancellationBusy || !cancellationMode) return;
+  const error = document.getElementById('cancel-booking-error'); error.textContent = '';
+  const reason = document.getElementById('cancel-booking-reason').value.trim();
+  if (cancellationMode==='request' && !reason) { error.textContent = 'Vui lòng nhập lý do hủy.'; return; }
+  paymentCancellationBusy = true;
+  document.getElementById('btn-submit-cancel').disabled = true;
+  document.getElementById('btn-keep-booking').disabled = true;
+  renderPaymentHold();
+  try {
+    if (cancellationMode==='hold') await fetchJSON('/api/BookingOperations/'+booking.id+'/cancel-hold',{method:'POST'});
+    else await fetchJSON('/api/BookingRequests/'+booking.id,{method:'POST',body:{type:'Cancel',reason}});
+    booking = await fetchJSON('/api/BookingOperations/'+booking.id+'/public-info');
+    isPaymentCompleted = false; renderBookingData();
+    cancellationDialog.close();
+  } catch(e) { error.textContent = e.message; }
+  finally {
+    paymentCancellationBusy = false;
+    document.getElementById('btn-submit-cancel').disabled = false;
+    document.getElementById('btn-keep-booking').disabled = false;
+    renderPaymentHold();
+  }
+});

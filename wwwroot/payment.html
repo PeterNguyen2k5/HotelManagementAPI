@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Thanh toán đặt phòng · An Nhiên Hotel & Resort</title>
   <link rel="stylesheet" href="/fonts.css?v=20261027-portal-2">
-  <link rel="stylesheet" href="/payment.css?v=20261027-deposit-1">
+  <link rel="stylesheet" href="/payment.css?v=20261029-cancel-2">
   <script src="/api-errors.js?v=20261027-portal-2" defer></script>
   <script src="/booking-hold.js?v=20261029-holds-1" defer></script>
   <script src="/hotel-time.js?v=20261027-deploy-1" defer></script>
-  <script src="/payment.js?v=20261029-holds-1" defer></script>
+  <script src="/payment.js?v=20261029-cancel-2" defer></script>
   <link rel="stylesheet" href="/customer-notifications.css?v=20261029-holds-1">
 </head>
 <body>
@@ -36,6 +36,10 @@
     </div>
 
     <div class="pay-content" id="pay-content" style="display:none;">
+      <section class="payment-hold-actions" aria-label="Thời hạn thanh toán và hủy đặt phòng">
+        <div id="payment-hold-notice"></div>
+        <div class="payment-cancel-actions"><button type="button" class="btn-cancel-booking" id="btn-cancel-booking" hidden>Hủy giữ chỗ</button><p id="payment-cancel-status" role="status"></p></div>
+      </section>
       <!-- Cột trái: Tóm tắt đặt phòng & Lựa chọn phương thức -->
       <section class="pay-col left-col">
         <div class="card booking-summary">
@@ -43,7 +47,6 @@
             <span class="step-num">1</span>
             <h2>Thông tin đặt phòng</h2>
           </div>
-          <div id="payment-hold-notice"></div>
           <div class="booking-id-tag" id="summary-booking-id">Booking #...</div>
 
           <div class="summary-details">
@@ -363,6 +366,15 @@
     </div>
   </dialog>
 
+  <dialog id="cancel-booking-dialog" aria-labelledby="cancel-booking-title">
+    <form id="cancel-booking-form">
+      <h2 id="cancel-booking-title">Hủy giữ chỗ?</h2>
+      <p id="cancel-booking-description"></p>
+      <label id="cancel-reason-label" hidden>Lý do hủy<textarea id="cancel-booking-reason" maxlength="500" rows="3"></textarea></label>
+      <p id="cancel-booking-error" role="alert"></p>
+      <div class="payment-dialog-actions"><button type="button" id="btn-keep-booking">Giữ lại booking</button><button type="submit" class="btn-cancel-booking" id="btn-submit-cancel">Xác nhận hủy</button></div>
+    </form>
+  </dialog>
   <footer class="pay-footer">
     <p>An Nhiên Hotel &amp; Resort · Đường Võ Nguyên Giáp, Biển Mỹ Khê, Đà Nẵng · Hotline: 1900 6868</p>
   </footer>

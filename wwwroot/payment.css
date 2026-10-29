@@ -87,6 +87,23 @@ a { color: inherit; text-decoration: none; }
   flex: 1;
   width: 100%;
 }
+.payment-hold-actions{grid-column:1/-1;background:white;border:1px solid var(--line);border-radius:16px;padding:18px 24px}
+.payment-hold-actions .booking-hold{margin:0}
+.payment-hold-actions .payment-deadline-info{margin:0;color:var(--muted);font-size:14px;line-height:1.7}
+.payment-cancel-actions{display:flex;align-items:center;gap:16px;margin-top:12px}
+.payment-cancel-actions p{margin:0;font-size:13px;line-height:1.6;color:var(--muted)}
+.btn-cancel-booking{border:1px solid #c8917d;background:#fff5ef;color:#963d27;border-radius:8px;padding:10px 16px;font-weight:600;flex-shrink:0}
+.btn-cancel-booking:disabled{opacity:.55;cursor:default}
+#cancel-booking-dialog{max-width:520px;width:calc(100% - 32px);padding:28px;border:0;border-radius:16px;color:var(--green)}
+#cancel-booking-dialog::backdrop{background:#08251db3}
+#cancel-booking-dialog h2{margin:0 0 16px;font-family:'Playfair Display',Georgia,serif}
+#cancel-booking-dialog p{line-height:1.7;font-size:14px}
+#cancel-reason-label{display:grid;gap:8px;font-size:14px}
+#cancel-booking-reason{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical}
+#cancel-booking-error{color:#963d27}
+.payment-dialog-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:12px;margin-top:24px}
+#btn-keep-booking{border:1px solid var(--line);background:white;color:var(--green);border-radius:8px;padding:10px 16px}
+@media(max-width:600px){.payment-hold-actions{padding:16px}.payment-cancel-actions{align-items:flex-start;flex-direction:column}}
 .loading-state {
   text-align: center;
   padding: 80px 20px;
