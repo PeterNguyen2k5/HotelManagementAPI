@@ -118,7 +118,7 @@ function isBankConfigured() {
 }
 
 function canTransfer() {
-  return isBankConfigured() && getDueAmount() > 0;
+  return isBankConfigured() && getDueAmount() > 0 && booking?.status !== 'Cancelled' && !(booking?.awaitingPayment && window.bookingHold.remaining(booking) <= 0);
 }
 
 function updateTransferAvailability() {
@@ -137,7 +137,7 @@ function updateTransferAvailability() {
   document.getElementById('btn-confirm-transfer').disabled = !available;
   document.getElementById('btn-simulate-sepay').hidden = !available || !bankConfig?.canSimulate;
   const direct = document.getElementById('card-direct');
-  const settled = getDueAmount() <= 0;
+  const settled = getDueAmount() <= 0 || booking?.status === 'Cancelled' || booking?.awaitingPayment && window.bookingHold.remaining(booking) <= 0;
   direct.querySelector('input').disabled = settled;
   direct.classList.toggle('is-disabled', settled);
   direct.setAttribute('aria-disabled', String(settled));
@@ -212,8 +212,12 @@ function updateMethodUI() {
     c.querySelector('input').checked = false;
   });
 
-  const settled = getDueAmount() <= 0;
-  document.getElementById('settled-section').hidden = !settled;
+  const expired = booking?.status === 'Cancelled' || booking?.awaitingPayment && window.bookingHold.remaining(booking) <= 0;
+  const settled = getDueAmount() <= 0 || expired;
+  const settledSection = document.getElementById('settled-section');
+  settledSection.hidden = !settled;
+  settledSection.querySelector('h2').textContent = expired ? 'Booking đã hủy hoặc hết thời gian giữ chỗ' : 'Booking không còn khoản phải thu';
+  settledSection.querySelector('p').textContent = expired ? 'Vui lòng đặt phòng mới. Nếu đã chuyển khoản, hãy liên hệ lễ tân để đối soát.' : 'Quý khách không cần đặt cọc hoặc thanh toán thêm cho booking này.';
   if (settled) {
     depositOptions.style.display = 'none';
     qrSection.style.display = 'none';
@@ -269,6 +273,9 @@ async function checkSepayPaymentStatus(interactive = false) {
     const status = await fetchJSON('/api/BookingOperations/' + booking.id + '/payment-status');
     if (isPaymentCompleted) return false;
     const previousPaid = Number(booking.balance?.paid) || 0;
+    Object.assign(booking, { status:status.status, paymentDueAtUtc:status.paymentDueAtUtc, holdExpiredAtUtc:status.holdExpiredAtUtc, awaitingPayment:status.awaitingPayment, serverTimeUtc:status.serverTimeUtc });
+    window.bookingHold.sync(status.serverTimeUtc);
+    renderPaymentHold();
     const newlyReceived = status.paid > previousPaid;
     if (status.remaining !== getDueAmount() || status.paid !== previousPaid || status.gross !== booking.totalAmount) {
       booking.balance = { total: status.gross, paid: status.paid, due: status.remaining,
@@ -276,6 +283,7 @@ async function checkSepayPaymentStatus(interactive = false) {
       booking.totalAmount = status.gross;
       renderBookingData();
     }
+    if (status.status === 'Cancelled') { stopSepayPolling(); updateMethodUI(); return false; }
     // An earlier deposit is already part of the balance; only announce a new receipt.
     if (newlyReceived && status.latestPayment) {
       isPaymentCompleted = true;
@@ -300,6 +308,7 @@ async function checkSepayPaymentStatus(interactive = false) {
 }
 
 function renderBookingData() {
+  renderPaymentHold();
   document.getElementById('summary-booking-id').textContent = 'Booking #' + booking.id;
   document.getElementById('summary-guest-name').textContent = booking.customerName || 'Quý khách';
   document.getElementById('summary-guest-phone').textContent = booking.customerPhone || '—';
@@ -349,6 +358,7 @@ function showSuccessBoard(data) {
 
   if (p.type === 'Direct') {
     document.getElementById('suc-paid-now').textContent = '0 ₫ (Chờ thanh toán)';
+    if (booking.awaitingPayment) document.getElementById('suc-title').textContent = 'Chưa thanh toán · hạn giữ chỗ vẫn là 30 phút';
     document.getElementById('suc-remaining-due').textContent = money(getDueAmount());
   } else {
     document.getElementById('suc-paid-now').textContent = money(p.amount);
@@ -530,7 +540,7 @@ document.getElementById('btn-retry-qr')?.addEventListener('click', updateQRAndBa
 
 // Xác nhận thanh toán trực tiếp tại khách sạn
 document.getElementById('btn-confirm-direct')?.addEventListener('click', async () => {
-  if (!booking || getDueAmount() <= 0) return;
+  if (!booking || getDueAmount() <= 0 || booking.status === 'Cancelled' || booking.awaitingPayment && window.bookingHold.remaining(booking) <= 0) return;
   const submitBtn = document.getElementById('btn-confirm-direct');
   const errorBox = document.getElementById('direct-error');
   errorBox.textContent = '';
@@ -555,7 +565,7 @@ document.getElementById('btn-confirm-direct')?.addEventListener('click', async (
   } catch (err) {
     errorBox.textContent = err.message || 'Không thể xác nhận đặt phòng. Vui lòng thử lại.';
   } finally {
-    submitBtn.disabled = getDueAmount() <= 0;
+    submitBtn.disabled = getDueAmount() <= 0 || booking?.status === 'Cancelled' || booking?.awaitingPayment && window.bookingHold.remaining(booking) <= 0;
   }
 });
 
@@ -567,4 +577,18 @@ document.getElementById('btn-print-confirmation')?.addEventListener('click', () 
 // Nút về trang chủ
 document.getElementById('btn-back-home')?.addEventListener('click', () => {
   location.assign('/hotel.html');
+});
+
+function renderPaymentHold() {
+  const element = document.getElementById('payment-hold-notice');
+  if (element) {
+    const markup = window.bookingHold.markup(booking);
+    if (element.innerHTML !== markup) element.innerHTML = markup;
+  }
+}
+window.addEventListener('booking-hold-expired', () => {
+  if (!booking?.awaitingPayment) return;
+  updateMethodUI();
+  if (isPaymentCompleted) isPaymentCompleted = false;
+  checkSepayPaymentStatus();
 });

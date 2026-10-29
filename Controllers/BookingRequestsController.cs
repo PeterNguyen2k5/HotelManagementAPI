@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HotelManagementAPI.Controllers;
 
 [ApiController,Route("api/BookingRequests")]
-public sealed class BookingRequestsController(HotelDbContext db,HotelWorkflow workflow) : ControllerBase
+public sealed class BookingRequestsController(HotelDbContext db,HotelWorkflow workflow, BookingHolds holds) : ControllerBase
 {
     [HttpPost("{bookingId:int}"),Authorize(Roles=Roles.Customer)]
     public async Task<IActionResult> Create(int bookingId,GuestBookingRequest request)
@@ -21,6 +21,7 @@ public sealed class BookingRequestsController(HotelDbContext db,HotelWorkflow wo
             var customerId=await db.CustomerAccounts.Where(x=>x.Id==accountId).Select(x=>x.CustomerId).FirstAsync();
             var b=await db.Bookings.FirstOrDefaultAsync(x=>x.Id==bookingId && x.CustomerId==customerId);
             if(b is null)return NotFound();
+            if(await holds.TryExpire(b)){await db.SaveChangesAsync();await tx.CommitAsync();return Conflict(new {message=BookingHolds.ExpiredMessage});}
             if(b.Status!=BookingStates.Reserved)return Conflict(new{message="Chỉ booking chưa nhận phòng mới gửi yêu cầu hủy/đổi."});
             if(await db.BookingRequests.AnyAsync(x=>x.BookingId==bookingId && x.Status=="Pending"))return Conflict(new{message="Booking đang có yêu cầu chờ xử lý."});
             if(request.Type=="Change" && (!request.CheckInDate.HasValue || !request.CheckOutDate.HasValue || request.CheckInDate.Value.Date<workflow.Now.Date || request.CheckOutDate.Value.Date<=request.CheckInDate.Value.Date))
@@ -57,6 +58,7 @@ public sealed class BookingRequestsController(HotelDbContext db,HotelWorkflow wo
             var r=await db.BookingRequests.FirstOrDefaultAsync(x=>x.Id==id);
             if(r is null)return NotFound();if(r.Status!="Pending")return Conflict(new{message="Yêu cầu đã được xử lý."});
             var b=await ApiSupport.FullBookings(db).FirstAsync(x=>x.Id==r.BookingId);
+            if(await holds.TryExpire(b)){await db.SaveChangesAsync();await tx.CommitAsync();return Conflict(new {message=BookingHolds.ExpiredMessage});}
             if(request.Approve==true){
                 if(b.Revision!=r.BookingRevision)throw new WorkflowConflict("Booking đã thay đổi từ lúc gửi yêu cầu. Hãy từ chối và đề nghị khách gửi lại.");
                 if(r.Type=="Cancel")await workflow.Cancel(b,r.Id);

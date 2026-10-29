@@ -331,3 +331,14 @@ Trang thanh toán và hóa đơn có liên kết quay về Booking của tôi. C
 Chạy `node tests/run-customer-portal-ui.mjs` để kiểm tra bố cục bằng Playwright/Edge và chạy kèm 59 kiểm tra API. Có thể đặt `HOTEL_PLAYWRIGHT_MODULE` đến thư mục module Playwright, `HOTEL_BROWSER_PATH` đến trình duyệt và `HOTEL_UI_SCREENSHOTS` đến thư mục xuất ảnh. Harness tạo server/database riêng, không dùng tài khoản thật hoặc gửi SMTP. Kiểm tra bao gồm tab trạng thái, reset phân trang khi đổi tab, tìm kiếm, chi tiết, gửi yêu cầu, hồ sơ, hóa đơn, lỗi/Thử lại và bố cục 320/390/768/1440 px.
 
 Điều hướng khách hàng dùng liên kết trực tiếp tới trang customer.html có phiên bản giao diện trên URL, không gọi hộp thoại lịch sử cũ. HTML/JavaScript/CSS được revalidate với Cache-Control: no-cache để nhận file cập nhật; ảnh/font vẫn giữ cơ chế cache. Phiên khách hàng được giữ trong cùng tab. Nếu đang chạy phiên ứng dụng cũ, dừng/chạy lại đúng project này và tải lại trang.
+
+
+### Giữ chỗ 30 phút và thông báo khách hàng
+
+Booking do khách tạo mới qua website có 30 phút để thanh toán cọc. Hạn được lưu theo UTC và hiển thị đếm ngược trên danh sách, chi tiết booking và trang thanh toán. Khi chưa ghi nhận khoản Deposit/Payment dương, hết hạn thì booking tự hủy, yêu cầu đổi/hủy đang chờ bị từ chối và phòng có thể được đặt lại. Tác vụ nền kiểm tra mỗi 15 giây; kiểm tra lịch trống và ghi tiền vẫn bảo vệ tại thời điểm thao tác. Khoản cọc đã nhận giữ booking, kể cả cọc một phần. Chọn trả tại quầy (Direct, 0 đồng) không kéo dài hạn. Booking giữ chỗ cần ghi nhận cọc trước khi check-in. Đổi ngày không đặt lại đồng hồ 30 phút.
+
+Migration không thêm hạn vào booking cũ hoặc booking lễ tân tạo. Phòng miễn phí không yêu cầu thanh toán. Chuyển khoản đến sau khi hết hạn được lưu chờ đối soát, không tự khôi phục booking đã hủy. Lễ tân cần kiểm tra phòng và xử lý đặt mới/hoàn tiền riêng.
+
+Chuông trên trang khách sạn và trang tài khoản khách hiển thị tối đa 100 thông báo gần nhất: hạn thanh toán, nhắc dưới 5 phút, hết hạn, khoản thu/hoàn tiền đã ghi nhận, kết quả yêu cầu đổi/hủy. Nội dung lấy từ giao dịch và yêu cầu đã lưu; mã nguồn sự kiện ổn định không nhân đôi khi gửi lại. Trạng thái đã đọc lưu trong SQLite theo từng hồ sơ khách, giữ qua đăng xuất và khởi động lại. Không gửi email, push trình duyệt hoặc xác nhận ngân hàng giả. Giao diện cập nhật thông báo mỗi 15 giây khi trang đang mở.
+
+Kiểm thử riêng: node tests/run-booking-holds.mjs. Dùng server/database tạm; đặt HOTEL_TEST_DLL nếu build cấu hình riêng. Có thể bật kiểm thử Edge bằng HOTEL_PLAYWRIGHT_MODULE và HOTEL_BROWSER_PATH, xuất ảnh bằng HOTEL_UI_SCREENSHOTS. Bộ này kiểm tra hết hạn, trả phòng về lịch trống, tiền đến muộn, bảo vệ cọc, Direct, quyền sở hữu thông báo, đọc lại không trùng, khởi động lại, nâng schema có dữ liệu và đồng hồ thiết bị sai giờ.

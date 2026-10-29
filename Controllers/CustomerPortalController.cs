@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HotelManagementAPI.Controllers;
 
 [ApiController, Route("api/CustomerPortal"), Authorize(Roles = Roles.Customer)]
-public sealed class CustomerPortalController(HotelDbContext db) : ControllerBase
+public sealed class CustomerPortalController(HotelDbContext db, BookingHolds holds) : ControllerBase
 {
     private Task<int> CustomerId() => db.CustomerAccounts
         .Where(x => x.Id == int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!) && x.IsActive)
@@ -20,6 +20,7 @@ public sealed class CustomerPortalController(HotelDbContext db) : ControllerBase
     [HttpGet("summary")]
     public async Task<IActionResult> Summary()
     {
+        await holds.Reap();
         var customerId = await CustomerId();
         var bookings = await FullOwned(customerId).ToListAsync();
         var pending = await db.BookingRequests.CountAsync(x => x.Booking.CustomerId == customerId && x.Status == "Pending");
@@ -40,6 +41,7 @@ public sealed class CustomerPortalController(HotelDbContext db) : ControllerBase
     [HttpGet("bookings")]
     public async Task<IActionResult> Bookings([FromQuery] CustomerPortalBookingQuery query)
     {
+        await holds.Reap();
         var customerId = await CustomerId();
         var rows = FullOwned(customerId);
         if (!string.IsNullOrWhiteSpace(query.Status)) rows = rows.Where(x => x.Status == query.Status);
@@ -69,6 +71,7 @@ public sealed class CustomerPortalController(HotelDbContext db) : ControllerBase
     [HttpGet("bookings/{id:int}")]
     public async Task<IActionResult> Detail(int id)
     {
+        await holds.Reap();
         var customerId = await CustomerId();
         var booking = await FullOwned(customerId).FirstOrDefaultAsync(x => x.Id == id);
         if (booking is null) return NotFound();

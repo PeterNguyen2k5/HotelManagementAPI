@@ -199,8 +199,14 @@ namespace HotelManagementAPI.Migrations
                     b.Property<int?>("GuestCount")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("HoldExpiredAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Note")
                         .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PaymentDueAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Revision")
@@ -217,6 +223,8 @@ namespace HotelManagementAPI.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("Status", "PaymentDueAtUtc");
 
                     b.HasIndex("RoomId", "CheckInDate", "CheckOutDate");
 
@@ -458,6 +466,23 @@ namespace HotelManagementAPI.Migrations
                         .IsUnique();
 
                     b.ToTable("CustomerAccounts");
+                });
+
+            modelBuilder.Entity("HotelManagementAPI.Models.CustomerNotificationRead", b =>
+                {
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("EventKey")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ReadAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CustomerId", "EventKey");
+
+                    b.ToTable("CustomerNotificationReads");
                 });
 
             modelBuilder.Entity("HotelManagementAPI.Models.DatabaseBackup", b =>
@@ -861,6 +886,15 @@ namespace HotelManagementAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("HotelManagementAPI.Models.CustomerNotificationRead", b =>
+                {
+                    b.HasOne("HotelManagementAPI.Models.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("HotelManagementAPI.Models.Room", b =>
