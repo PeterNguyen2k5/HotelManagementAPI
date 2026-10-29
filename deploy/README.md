@@ -128,3 +128,6 @@ docker compose --profile monitoring up -d
 Các kiểm tra local không thay thế việc xác nhận DNS, chứng chỉ công khai, quyền volume Linux, gửi SMTP thật hay nhận webhook SePay trên hạ tầng triển khai.
 
 Tham khảo chính thức: [Microsoft — proxy/forwarded headers](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-8.0), [Microsoft — health checks](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks?view=aspnetcore-8.0), [Caddy — automatic HTTPS](https://caddyserver.com/docs/automatic-https), [Prometheus — configuration](https://prometheus.io/docs/prometheus/latest/configuration/configuration/), [Docker — quyền của secret từ file](https://docs.docker.com/reference/compose-file/services/#long-syntax-5).
+
+
+Kênh liên hệ khách sạn: cấu hình HotelContact__Phone, HotelContact__Email và HotelContact__FacebookUrl trên Render hoặc biến môi trường container để thay thông tin công khai. Nếu không ghi đè, ứng dụng dùng HotelContact trong appsettings.json. Không dùng mật khẩu SMTP hoặc SePay làm giá trị các trường này. GET /api/HotelContact chỉ trả thông tin công khai đã kiểm tra định dạng. Thông tin được đưa vào recovery-settings.json của gói sao lưu để phục hồi cùng ứng dụng.

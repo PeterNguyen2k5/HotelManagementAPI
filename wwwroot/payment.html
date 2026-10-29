@@ -11,6 +11,8 @@
   <script src="/hotel-time.js?v=20261027-deploy-1" defer></script>
   <script src="/payment.js?v=20261029-cancel-2" defer></script>
   <link rel="stylesheet" href="/customer-notifications.css?v=20261029-holds-1">
+  <link rel="stylesheet" href="/hotel-contact.css?v=20261029-contact-1">
+  <script src="/hotel-contact.js?v=20261029-contact-1" defer></script>
 </head>
 <body>
   <header class="pay-header">
@@ -292,6 +294,11 @@
         </div>
       </section>
     </div>
+    <section class="hotel-support" aria-labelledby="payment-support-title">
+      <h2 id="payment-support-title">Bạn cần hỗ trợ thanh toán?</h2>
+      <p>Đã chuyển khoản nhưng chưa thấy cập nhật, hoặc cần hỗ trợ đặt phòng? Liên hệ lễ tân và cung cấp mã đặt phòng cùng mã giao dịch để được kiểm tra.</p>
+      <div class="hotel-contact" data-hotel-contact aria-label="Liên hệ hỗ trợ thanh toán"><p role="status">Đang tải thông tin liên hệ…</p></div>
+    </section>
   </main>
 
   <!-- BẢNG THÀNH CÔNG (SUCCESS BOARD / MODAL) -->
@@ -376,7 +383,7 @@
     </form>
   </dialog>
   <footer class="pay-footer">
-    <p>An Nhiên Hotel &amp; Resort · Đường Võ Nguyên Giáp, Biển Mỹ Khê, Đà Nẵng · Hotline: 1900 6868</p>
+    <p>An Nhiên Hotel &amp; Resort · Hỗ trợ đặt phòng và thanh toán</p>
   </footer>
 </body>
 </html>

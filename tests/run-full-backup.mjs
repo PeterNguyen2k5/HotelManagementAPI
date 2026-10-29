@@ -24,6 +24,7 @@ async function stop(){if(server&&server.exitCode===null){const done=once(server,
 async function start(extra=[]){await stop();server=await startTestServer({project,root:source,database,base,environment:'Development',extraArgs:[
  '--Storage:DataDirectory',source,'--Payments:BankConfigFile',externalBank,'--Hotel:TimeZone','Asia/Tokyo','--CustomerEmail:Mode','Pickup','--CustomerEmail:PublicBaseUrl',base,
  '--CustomerEmail:From','fixture@example.test','--CustomerEmail:Smtp:Host','127.0.0.1','--CustomerEmail:Smtp:Username','fixture','--CustomerEmail:Smtp:Password',smtpSecret,
+ '--HotelContact:Phone','0900000123','--HotelContact:Email','backup-contact@example.test','--HotelContact:FacebookUrl','https://www.facebook.com/backup.fixture',
  '--Monitoring:ScrapeKey',scrape,'--Backup:MaxBackups','2','--Backup:RetentionDays','14','--Backup:ReplicaDirectory',replica,...extra]});}
 async function api(method,route,body,status=200,token=admin,host=base){
  const response=await fetch(host+route,{method,headers:{...(body===undefined?{}:{'content-type':'application/json'}),...(token?{authorization:'Bearer '+token}:{})},body:body===undefined?undefined:JSON.stringify(body)});
@@ -64,6 +65,7 @@ try{
  for(const entry of manifest.files){const file=files.find(f=>f.name===entry.path);assert.equal(file.data.length,entry.size);assert.equal(digest(file.data),entry.sha256);}
  assert.ok(files.some(f=>f.name.startsWith('data-protection-keys/')));assert.ok(files.some(f=>f.name==='App_Data/room-images/'+room.id+'/'+path.basename(imageUrl)));
  const recoveredSettings=JSON.parse(files.find(f=>f.name==='recovery-settings.json').data);assert.equal(recoveredSettings['CustomerEmail:Smtp:Password'],smtpSecret);assert.equal(recoveredSettings['Hotel:TimeZone'],'Asia/Tokyo');
+ assert.equal(recoveredSettings['HotelContact:Phone'],'0900000123');assert.equal(recoveredSettings['HotelContact:Email'],'backup-contact@example.test');assert.equal(recoveredSettings['HotelContact:FacebookUrl'],'https://www.facebook.com/backup.fixture');checks+=3;
  assert.ok(files.find(f=>f.name==='jwt.key').data.equals(await readFile(path.join(source,'jwt.key'))));assert.equal(JSON.parse(files.find(f=>f.name==='bank-config.json').data).SepayApiKey,bankKey);
  assert.ok((await readFile(path.join(replica,good.fileName))).equals(bytes));
  for(const token of [null,clerk,guest.token])await api('GET',`/api/Administration/backups/${good.id}/download`,undefined,token?403:401,token);
@@ -77,6 +79,8 @@ try{
  assert.equal((await api('GET','/api/Rooms/'+room.id,undefined,200,admin,restoredBase)).data.price,500000);
  assert.equal((await api('GET','/api/Rooms/'+room.id)).data.price,600000);
  assert.equal((await api('GET','/api/HotelConfiguration',undefined,200,null,restoredBase)).data.timeZone,'Asia/Tokyo');
+ const restoredContact=(await api('GET','/api/HotelContact',undefined,200,null,restoredBase)).data;
+ assert.equal(restoredContact.phone,'0900000123');assert.equal(restoredContact.email,'backup-contact@example.test');assert.equal(restoredContact.facebookUrl,'https://www.facebook.com/backup.fixture');checks+=3;
  assert.equal((await api('GET',`/api/BookingOperations/${booking.id}/payments`,undefined,200,admin,restoredBase)).data.balance.paid,25000);
  assert.ok(Buffer.from(await (await fetch(restoredBase+imageUrl)).arrayBuffer()).equals(image));checks++;
  const restoredBank=(await api('GET','/api/BookingOperations/bank-config',undefined,200,null,restoredBase)).data;assert.equal(restoredBank.accountNumber,bank.accountNumber);assert.ok(!JSON.stringify(restoredBank).includes(bankKey));

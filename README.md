@@ -347,3 +347,12 @@ Kiểm thử riêng: node tests/run-booking-holds.mjs. Dùng server/database t�
 Trang thanh toán hiển thị thời hạn ở khung đầu trang cùng nút hủy. Booking cũ hoặc lễ tân tạo không có hạn tự hủy và được giải thích rõ; không phát sinh đồng hồ 30 phút khi chỉ mở lại trang. Khách sở hữu booking Reserved chưa có khoản thu dương có thể hủy giữ chỗ sau xác nhận, bao gồm khi đã chọn Direct 0 đồng. Hủy và thu tiền dùng giao dịch SQLite nối tiếp: nếu tiền đến trước, API từ chối hủy ngay và yêu cầu khách gửi yêu cầu hủy cho lễ tân. Booking có cọc sử dụng quy trình duyệt đổi/hủy hiện có; không tự hoàn tiền. Gửi lại yêu cầu hủy giữ chỗ đã thành công không ghi thêm khoản tiền hoặc nhân đôi hành động. Chuyển khoản đến sau khi hủy vẫn được lưu chờ đối soát.
 
 Kiểm thử: node tests/run-payment-cancellation.mjs dùng database/server riêng, kiểm tra quyền sở hữu, Direct, hủy lại, trả phòng về lịch trống, tiền đến muộn, 12 cặp hủy/thu tiền đồng thời và Edge desktop/mobile khi có cấu hình trình duyệt.
+
+
+### Kênh liên hệ công khai
+
+Trang chủ (mục Liên hệ), trang khách hàng và trang thanh toán dùng chung GET /api/HotelContact để hiển thị nút gọi lễ tân, gửi email và mở Facebook. Trang thanh toán vẫn hiển thị phần hỗ trợ khi chưa đăng nhập hoặc không tải được booking. Không gửi email/tin nhắn tự động khi mở trang; số điện thoại, email và liên kết chỉ được dùng khi khách bấm nút.
+
+Thông tin hiện tại được chủ project cho phép công khai trong appsettings.json, mục HotelContact. Có thể thay bằng biến môi trường Render HotelContact__Phone, HotelContact__Email, HotelContact__FacebookUrl. Các trường này tách khỏi CustomerEmail:Smtp và không đọc thông tin cá nhân từ hồ sơ khách. Đường dẫn Facebook chỉ nhận HTTPS đúng host Facebook; số gọi và email được chuẩn hóa. Cấu hình trống hoặc không hợp lệ không tạo nút giả; lỗi tải có nút thử lại.
+
+Các trường HotelContact được lưu trong gói sao lưu đầy đủ và nạp lại khi phục hồi. Kiểm thử: node tests/run-hotel-contact.mjs và node tests/run-full-backup.mjs. Bộ UI kiểm tra desktop/mobile, liên kết chính xác, tình huống API lỗi và không nhúng URL chạy JavaScript; không thực hiện cuộc gọi, gửi mail hoặc gửi tin Facebook.

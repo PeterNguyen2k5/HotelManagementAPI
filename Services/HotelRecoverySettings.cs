@@ -10,6 +10,7 @@ public static class HotelRecoverySettings
 {
     public const string FileName = "recovery-settings.json";
     private static readonly string[] Keys = ["Hotel:TimeZone", "DataProtection:ApplicationName",
+        "HotelContact:Phone", "HotelContact:Email", "HotelContact:FacebookUrl",
         "ConnectionStrings:DefaultConnection", "Payments:BankConfigFile", "Payments:SepayWebhookKey",
         "CustomerEmail:Mode", "CustomerEmail:From", "CustomerEmail:PublicBaseUrl", "CustomerEmail:Smtp:Host",
         "CustomerEmail:Smtp:Port", "CustomerEmail:Smtp:Username", "CustomerEmail:Smtp:Password",
