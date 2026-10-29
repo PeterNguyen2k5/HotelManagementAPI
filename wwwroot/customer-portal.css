@@ -1,0 +1,222 @@
+.portal { --account-green:#183e33; --account-gold:#a17c3d; --account-line:#e7e8e4; background:#f5f5f3; color:#303a35; font:14px/1.5 'DM Sans',Arial,sans-serif; }
+.portal button,.portal input,.portal select { font-family:inherit; }
+.portal :is(a,button,input,select,summary):focus-visible { outline:2px solid #ac8544; outline-offset:4px; }
+.portal-topbar { background:#fff; border-top:3px solid var(--account-green); border-bottom:1px solid var(--account-line); }
+.portal-topbar-inner { width:min(1180px,calc(100% - 48px)); min-height:100px; margin:auto; display:flex; align-items:center; gap:24px; }
+.portal-brand { display:block; color:var(--account-green); font:600 30px/1.1 'Playfair Display',Georgia,serif; white-space:nowrap; }
+.portal-brand small { display:block; margin-top:7px; color:var(--account-gold); font:600 8px/1.3 'DM Sans',Arial,sans-serif; letter-spacing:.28em; }
+.portal-header-divider { height:32px; border-left:1px solid #dedfd9; }
+.portal-header-title { color:#566159; font-size:17px; }
+.portal-topbar nav { display:flex; gap:26px; margin-left:auto; align-items:center; font-size:12px; color:#6d756f; }
+.portal-topbar nav a:last-child { color:var(--account-green); }
+.portal-topbar nav a:hover { color:var(--account-gold); }
+.portal-shell { display:grid; grid-template-columns:200px minmax(0,1fr); gap:32px; max-width:1180px; margin:32px auto 50px; width:calc(100% - 48px); min-height:calc(100vh - 254px); align-items:start; }
+.portal-sidebar { min-width:0; padding-top:5px; }
+.portal-sidebar[hidden],.portal-avatar[hidden] { display:none; }
+.portal-shell:has(.portal-sidebar[hidden]) { grid-template-columns:minmax(0,1fr); }
+.portal-account { display:flex; align-items:center; gap:12px; padding:8px 0 23px; margin-bottom:20px; border-bottom:1px solid var(--account-line); }
+.portal-account>div { min-width:0; }
+.portal-account strong { display:block; color:#283f32; font-size:13px; overflow-wrap:anywhere; }
+.portal-avatar { flex-shrink:0; width:48px; height:48px; border:1px solid #dde2d9; border-radius:50%; background:#eaeee7; color:#6b7e6b; font-size:14px; font-weight:600; }
+.portal-edit-link,.portal-text-button { border:0; padding:0; background:none; color:#81877e; font-size:12px; cursor:pointer; }
+.portal-edit-link { margin-top:5px; }
+.portal-sidebar nav { display:grid; gap:5px; }
+.portal-sidebar nav a { display:flex; align-items:center; gap:12px; padding:12px 0; color:#566459; font-size:13px; }
+.portal-sidebar nav svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+.portal-sidebar nav a[aria-current=page],.portal-sidebar nav a:hover { color:var(--account-gold); }
+.portal-sidebar nav a[aria-current=page] { font-weight:600; }
+.portal-sidebar-bottom { display:grid; gap:18px; margin-top:27px; padding-top:24px; border-top:1px solid var(--account-line); font-size:12px; color:#7a8379; }
+.portal-sidebar-bottom button { padding:0; border:0; background:none; color:inherit; text-align:left; font-size:12px; }
+.portal-workspace,.portal-main { min-width:0; width:100%; }
+.portal-footer { display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; max-width:1180px; width:calc(100% - 48px); margin:auto; padding:23px 0; border-top:1px solid #e3e5df; color:#92988f; font-size:11px; }
+.portal-footer>span:first-child { color:#546952; }
+.portal-footer a { color:#6d7c65; }
+.portal-sr-only { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important; }
+.portal-status-tabs { display:flex; background:#fff; border-bottom:1px solid var(--account-line); box-shadow:0 1px 2px #26321f03; }
+.portal-status-tabs button { flex:1; padding:20px 12px 18px; border:0; border-bottom:2px solid transparent; color:#56635a; background:none; white-space:nowrap; font-size:13px; }
+.portal-status-tabs button[aria-pressed=true] { color:var(--account-green); border-bottom-color:var(--account-green); font-weight:600; }
+.portal-status-tabs button:hover { color:var(--account-gold); }
+.portal-filters { margin:14px 0 18px; }
+.portal-search { display:flex; align-items:center; gap:12px; padding:0 16px; min-height:47px; background:#eaece7; }
+.portal-search svg { width:19px; height:19px; fill:none; stroke:#899284; stroke-width:1.5; flex-shrink:0; }
+.portal-search input { background:none; border:0; outline:none; min-width:0; flex:1; color:#364f3a; padding:13px 0; font-size:12px; }
+.portal-search input::placeholder { color:#8c9486; }
+.portal-search button { background:none; border:0; border-left:1px solid #d4d9cf; padding:2px 0 2px 14px; font-size:12px; color:#5c7353; }
+.portal-date-filter { margin-top:10px; font-size:11px; color:#858d80; }
+.portal-date-filter summary { width:fit-content; cursor:pointer; padding:1px 0; }
+.portal-date-filter>div { display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; padding:14px; margin-top:10px; background:white; border:1px solid var(--account-line); }
+.portal-date-filter label { display:grid; gap:6px; font-size:11px; }
+.portal-date-filter input { min-width:0; border:1px solid #d9dfd3; padding:9px; color:#4b6143; background:#fff; }
+.portal-date-filter .portal-button { padding:8px 17px; }
+.portal-date-filter .portal-text-button { align-self:center; font-size:11px; }
+.portal-filters>.customer-error:empty { display:none; }
+.portal-filters>.customer-error { display:block; margin-top:10px; }
+.portal-bookings { display:grid; gap:16px; }
+.portal-booking { min-width:0; background:#fff; border-radius:3px; box-shadow:0 1px 3px #26321f07; padding:0 24px; }
+.portal-order-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:18px 0; border-bottom:1px solid var(--account-line); }
+.portal-order-header>div { display:flex; align-items:center; flex-wrap:wrap; gap:10px; min-width:0; }
+.portal-hotel-tag { background:#eaf0e8; color:#4b6b41; font-size:10px; padding:3px 8px; font-weight:600; border-radius:2px; }
+.portal-order-number { color:#5f6c5d; font-size:11px; }
+.portal-contact-link { color:#899083; border-left:1px solid #e3e6df; padding-left:10px; font-size:10px; }
+.portal-contact-link:hover { color:var(--account-gold); }
+.portal-badge { display:inline-flex; align-items:center; gap:7px; color:#6d7c65; font-size:11px; font-weight:500; white-space:nowrap; }
+.portal-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; }
+.portal-badge.Reserved,.portal-badge.Pending { color:#b18a3c; }
+.portal-badge.CheckedIn,.portal-badge.Approved { color:#40866d; }
+.portal-badge.CheckedOut { color:#397669; }
+.portal-badge.Cancelled,.portal-badge.Rejected { color:#a57869; }
+.portal-room-row { display:grid; grid-template-columns:108px minmax(0,1fr) auto; gap:19px; padding:22px 0; align-items:center; border-bottom:1px solid var(--account-line); }
+.portal-booking-image { display:block; width:108px; height:96px; object-fit:cover; border:1px solid #eceee8; border-radius:2px; background:#f4f6f0; }
+.portal-room-info { min-width:0; }
+.portal-room-info h2 { font:500 16px/1.5 'DM Sans',Arial,sans-serif; color:#314b38; margin:0 0 9px; overflow-wrap:anywhere; }
+.portal-room-info p { margin:0 0 5px; font-size:12px; color:#7a8573; }
+.portal-room-info>span { font-size:11px; color:#8d9586; }
+.portal-room-info p>span,.portal-room-info>span>span { margin:0 6px; color:#b6bdaf; }
+.portal-room-price { text-align:right; font-size:13px; color:#5a6e50; }
+.portal-room-price small { display:block; font-size:10px; color:#a0a698; margin-top:5px; }
+.portal-order-total { display:flex; justify-content:flex-end; align-items:baseline; gap:12px; padding-top:20px; }
+.portal-order-total>span { font-size:12px; color:#66755c; }
+.portal-order-total strong { font-weight:500; font-size:23px; color:var(--account-gold); }
+.portal-payment-note { margin-top:5px; text-align:right; font-size:10px; color:#929a89; line-height:1.8; }
+.portal-payment-note>span { margin:0 6px; }
+.portal-order-footer { display:flex; align-items:center; justify-content:space-between; gap:22px; padding:19px 0 23px; }
+.portal-order-footer>p { color:#929a89; font-size:10px; margin:0; line-height:1.8; max-width:225px; }
+.portal-order-footer>p a { color:var(--account-gold); white-space:nowrap; }
+.portal-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.portal-order-footer .portal-actions { justify-content:flex-end; }
+.portal-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; background:#fff; border:1px solid #dfe3d9; border-radius:3px; color:#64765b; padding:10px 17px; font-size:11px; line-height:1.5; text-align:center; cursor:pointer; }
+.portal-button:hover { background:#f7f9f3; border-color:#aab69d; }
+.portal-button.primary { color:#fff; background:var(--account-green); border-color:var(--account-green); }
+.portal-button.primary:hover { background:#2c5544; }
+.portal-button.danger { color:#a07865; }
+.portal-button:disabled { opacity:.55; cursor:wait; }
+.portal-pagination { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; margin-top:22px; color:#979e8f; font-size:11px; }
+.portal-heading { display:flex; justify-content:space-between; align-items:center; gap:18px; padding:23px 26px; margin:0 0 18px; background:#fff; border-bottom:1px solid var(--account-line); }
+.portal h1 { font:500 23px/1.5 'DM Sans',Arial,sans-serif; margin:0 0 4px; color:#3d553d; }
+.portal h2 { font:500 18px/1.5 'DM Sans',Arial,sans-serif; color:#425a3d; margin:0 0 16px; }
+.portal-heading p,.portal-muted { margin:0; color:#8c9681; font-size:12px; line-height:1.8; }
+.portal-empty,.portal-loading { background:#fff; text-align:center; padding:75px 25px; color:#8b9780; font-size:12px; line-height:1.9; }
+.portal-empty h2 { color:#58704e; margin-bottom:12px; }
+.portal-empty p { max-width:440px; margin:0 auto; overflow-wrap:anywhere; }
+.portal-empty .portal-actions { justify-content:center; margin-top:25px; }
+.portal-main[aria-busy=true] { cursor:progress; }
+.portal-gate { max-width:640px; padding:60px 35px; margin:25px auto; }
+.portal-gate .portal-brand { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:35px; }
+.portal-gate .portal-brand>span { color:var(--account-gold); }
+.portal-eyebrow { font-size:10px; letter-spacing:.18em; color:#a78b52; margin-bottom:15px!important; }
+.portal-gate h1 { margin-bottom:18px; font-size:26px; }
+.portal-profile>.portal-panel+.portal-panel { margin-top:1px; }
+.portal-grid { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(250px,1fr); gap:18px; align-items:start; }
+.portal-grid>* { min-width:0; }
+.portal-panel { padding:25px; background:#fff; min-width:0; }
+.portal-panel+.portal-panel { margin-top:16px; }
+.portal-panel>.portal-actions { margin-top:25px; }
+.portal-info { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin:0; }
+.portal-info dt { color:#9aa18e; font-size:11px; margin-bottom:6px; }
+.portal-info dd { margin:0; color:#566c4a; font-size:12px; line-height:1.8; overflow-wrap:anywhere; white-space:pre-wrap; }
+.portal-info .wide { grid-column:1/-1; }
+.portal-detail-cover { width:100%; max-height:250px; object-fit:cover; margin-bottom:25px; border-radius:2px; }
+.portal-booking-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:20px; }
+.portal-booking-top h2 { margin:0; }
+.portal-booking-top>strong { font-size:13px; font-weight:500; color:#546c49; }
+.portal-amount-line { display:flex; justify-content:space-between; gap:14px; font-size:11px; color:#7f8e71; padding:12px 0; line-height:1.8; overflow-wrap:anywhere; }
+.portal-amount-line strong { color:#617650; text-align:right; max-width:64%; }
+.portal-amount-line.total { border-top:1px solid #e3e8dc; margin-top:8px; font-size:13px; }
+.portal-grid>aside>.portal-muted { margin-top:20px; font-size:11px; }
+.portal-table-wrap { max-width:100%; overflow:auto; }
+.portal-table { border-collapse:collapse; min-width:460px; width:100%; font-size:11px; }
+.portal-table th { text-align:left; color:#8c9980; padding:12px 9px; border-bottom:1px solid #e3e8dc; font-weight:500; }
+.portal-table td { padding:14px 9px; border-bottom:1px solid #eef0e9; color:#60754f; line-height:1.8; max-width:220px; overflow-wrap:anywhere; }
+.portal-request { padding:25px; background:#fff; }
+.portal-request+.portal-request { margin-top:14px; }
+.portal-request p { font-size:12px; line-height:1.9; color:#829374; overflow-wrap:anywhere; white-space:pre-wrap; }
+.portal-request .response { padding:14px 16px; background:#f6f8f1; border-left:2px solid #d3dbc5; }
+.portal-alert { background:#fbf6e9; border-left:2px solid #d5bb78; padding:13px 16px; font-size:11px; color:#a68b4b; line-height:1.8; margin:20px 0 0; }
+@media(max-width:1100px) {
+ .portal-shell { grid-template-columns:180px minmax(0,1fr); gap:24px; }
+ .portal-status-tabs button { padding:18px 8px; font-size:12px; }
+ .portal-order-footer { align-items:flex-end; }
+ .portal-order-footer>p { max-width:175px; }
+ .portal-grid { grid-template-columns:minmax(0,1fr); }
+ .portal-room-row { grid-template-columns:92px minmax(0,1fr) auto; gap:15px; }
+ .portal-booking-image { width:92px; height:88px; }
+ .portal-order-footer .portal-button { padding:9px 12px; }
+}
+@media(max-width:800px) {
+ .portal-topbar-inner { width:calc(100% - 32px); min-height:85px; gap:18px; }
+ .portal-brand { font-size:26px; }
+ .portal-header-title { font-size:14px; }
+ .portal-topbar nav { gap:18px; font-size:11px; }
+ .portal-topbar nav a:first-child { display:none; }
+ .portal-shell { display:block; width:calc(100% - 32px); margin-top:20px; }
+ .portal-account { padding:0 0 15px; margin:0; border:0; }
+ .portal-account strong { font-size:13px; }
+ .portal-sidebar nav { display:flex; overflow-x:auto; gap:26px; border-top:1px solid #e5e7e0; margin-bottom:20px; }
+ .portal-sidebar nav a { white-space:nowrap; padding:16px 0; font-size:12px; }
+ .portal-sidebar nav svg { width:17px; height:17px; }
+ .portal-sidebar-bottom { display:none; }
+ .portal-order-footer>p { max-width:230px; }
+ .portal-footer { width:calc(100% - 32px); }
+}
+@media(max-width:560px) {
+ .portal-topbar-inner { min-height:78px; }
+ .portal-header-divider,.portal-header-title,.portal-topbar nav a:not(:last-child) { display:none; }
+ .portal-topbar nav { font-size:10px; }
+ .portal-brand { font-size:24px; }
+ .portal-brand small { font-size:7px; }
+ .portal-shell { width:calc(100% - 24px); margin:18px auto 35px; }
+ .portal-sidebar { padding:0 4px; }
+ .portal-sidebar nav { gap:20px; }
+ .portal-sidebar nav a { font-size:11px; gap:8px; }
+ .portal-sidebar nav svg { width:15px; height:15px; }
+ .portal-status-tabs { overflow-x:auto; scrollbar-width:thin; }
+ .portal-status-tabs button { padding:16px 18px; font-size:12px; flex:1 0 auto; }
+ .portal-search { padding:0 12px; gap:8px; }
+ .portal-search input { font-size:11px; }
+ .portal-search button { font-size:10px; padding-left:10px; }
+ .portal-date-filter>div { gap:12px; }
+ .portal-date-filter label { flex:1; min-width:110px; }
+ .portal-date-filter input { width:100%; }
+ .portal-booking { padding:0 16px; }
+ .portal-order-header { padding:16px 0; gap:10px; }
+ .portal-order-header>div { gap:7px; }
+ .portal-order-number { font-size:10px; }
+ .portal-contact-link { display:none; }
+ .portal-badge { font-size:10px; }
+ .portal-room-row { grid-template-columns:76px minmax(0,1fr); gap:12px; align-items:start; padding:20px 0; }
+ .portal-booking-image { width:76px; height:82px; grid-row:1/3; }
+ .portal-room-info h2 { font-size:13px; margin-bottom:7px; }
+ .portal-room-info p { font-size:10px; margin-bottom:5px; }
+ .portal-room-info>span { font-size:10px; }
+ .portal-room-price { grid-column:2; text-align:left; font-size:11px; margin-top:-5px; }
+ .portal-room-price small { display:inline; margin-left:7px; font-size:9px; }
+ .portal-order-total { padding-top:17px; gap:10px; }
+ .portal-order-total>span { font-size:11px; }
+ .portal-order-total strong { font-size:20px; }
+ .portal-payment-note { font-size:9px; }
+ .portal-order-footer { display:block; padding:17px 0 20px; }
+ .portal-order-footer>p { max-width:none; font-size:10px; margin-bottom:15px; }
+ .portal-order-footer .portal-actions { gap:7px; }
+ .portal-order-footer .portal-button { padding:10px 12px; flex:1 0 auto; font-size:10px; }
+ .portal-panel,.portal-request { padding:20px; }
+ .portal-heading { padding:20px; flex-wrap:wrap; gap:15px; }
+ .portal h1 { font-size:21px; }
+ .portal h2 { font-size:17px; }
+ .portal-heading p { font-size:11px; }
+ .portal-info { gap:21px 15px; }
+ .portal-info dd { font-size:11px; }
+ .portal-info dt { font-size:10px; }
+ .portal-empty { padding:55px 20px; }
+ .portal-gate { margin:0; padding:40px 22px; }
+ .portal-footer { justify-content:center; gap:9px 20px; text-align:center; font-size:10px; }
+ .portal-footer>span:nth-child(2) { width:100%; order:1; }
+}
+@media(max-width:360px) {
+ .portal-sidebar nav { gap:14px; }
+ .portal-sidebar nav a { gap:5px; font-size:10px; }
+ .portal-status-tabs button { padding-left:14px; padding-right:14px; }
+ .portal-order-number { font-size:9px; }
+ .portal-info { grid-template-columns:minmax(0,1fr); }
+ .portal-booking { padding:0 13px; }
+}
+@media(prefers-reduced-motion:reduce) { .portal * { scroll-behavior:auto!important; } }

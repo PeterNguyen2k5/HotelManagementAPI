@@ -1,0 +1,12 @@
+# Optional: mount a dedicated backup directory on separate/off-machine storage.
+# The host directory must already exist, be empty on first use and be writable by UID 1654.
+services:
+  hotel:
+    environment:
+      Backup__ReplicaDirectory: /var/backups/hotel-replica
+    volumes:
+      - type: bind
+        source: ${HOTEL_BACKUP_REPLICA_PATH:?Set an existing dedicated backup directory}
+        target: /var/backups/hotel-replica
+        bind:
+          create_host_path: false

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An Nhiên Hotel & Resort – không gian nghỉ dưỡng riêng tư bên biển miền Trung.">
+  <title>An Nhiên · Hotel & Resort</title>
+  <link rel="icon" href="/hotel-favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/fonts.css?v=20261027-portal-2">
+  <link rel="stylesheet" href="/hotel.css?v=20261027-portal-2">
+  <link rel="stylesheet" href="/room-details.css?v=20261027-portal-2">
+  <link rel="stylesheet" href="/hero-ocean.css?v=20261027-portal-2">
+  <script src="/api-errors.js?v=20261027-portal-2" defer></script>
+  <script src="/hotel-time.js?v=20261027-deploy-1" defer></script>
+  <script src="/customer-auth.js?v=20261028-account-1" defer></script>
+  <script src="/hotel.js?v=20261027-deploy-1" defer></script>
+  <script src="/room-details.js?v=20261027-portal-2" defer></script>
+  <script src="/guest-operations.js?v=20261027-portal-2" defer></script>
+  <script src="/hero-ocean.js?v=20261027-portal-2" type="module"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="site-brand" href="#home">An Nhiên<small>HOTEL &amp; RESORT</small></a>
+    <nav aria-label="Điều hướng chính">
+      <a href="#home">Trang chủ</a>
+      <a href="#rooms">Hạng phòng</a>
+      <a href="#experience">Trải nghiệm</a>
+      <a href="#contact">Liên hệ</a>
+    </nav>
+    <div id="customer-actions" class="customer-actions" aria-label="Tài khoản khách hàng"></div>
+  </header>
+  <main>
+    <section id="home" class="site-hero">
+      <div id="hero-ocean" class="hero-ocean-layer" aria-hidden="true"></div>
+      <button type="button" id="hero-fx-toggle" class="hero-fx-toggle" aria-pressed="false" aria-label="Bật hiệu ứng sóng biển 3D" hidden>Sóng biển 3D <span>Tắt</span></button>
+      <span id="hero-fx-status" class="hero-fx-status" role="status" aria-live="polite"></span>
+      <div class="hero-inner">
+        <p class="eyebrow">NƠI BÌNH YÊN CHẠM VÀO BIỂN CẢ</p>
+        <h1>Chạm đến một kỳ nghỉ<br><em>đáng nhớ</em></h1>
+        <p class="hero-description">Tận hưởng không gian nghỉ dưỡng riêng tư, dịch vụ tinh tế và vẻ đẹp nguyên sơ của biển miền Trung.</p>
+      </div>
+      <form class="search-card" id="search-form">
+        <label>NHẬN PHÒNG<input type="date" name="checkInDate" required></label>
+        <label>TRẢ PHÒNG<input type="date" name="checkOutDate" required></label>
+        <label>KHÁCH<select name="guests"><option value="1">1 người lớn, 1 phòng</option><option value="2" selected>2 người lớn, 1 phòng</option><option value="3">3 người lớn, 1 phòng</option><option value="4">4 người lớn, 1 phòng</option></select></label>
+        <button type="submit">Tìm phòng <span aria-hidden="true">›</span></button>
+      </form>
+    </section>
+    <section class="experience-section" id="experience">
+      <div class="experience-copy">
+        <p class="eyebrow">NGHỈ DƯỠNG THEO CÁCH CỦA BẠN</p>
+        <h2>Không gian riêng tư,<br>trải nghiệm trọn vẹn</h2>
+        <p>Mỗi căn phòng là một khoảng trời riêng, nơi nội thất bản địa hòa quyện cùng tiện nghi hiện đại và khung cảnh thiên nhiên khoáng đạt.</p>
+        <a href="#rooms">Khám phá hạng phòng <span aria-hidden="true">→</span></a>
+      </div>
+      <img src="/images/room.jpg" alt="Không gian nghỉ dưỡng nhìn ra biển" loading="lazy">
+    </section>
+    <section class="rooms-section" id="rooms">
+      <div class="section-heading"><div><p class="eyebrow">CHỌN KHÔNG GIAN CỦA BẠN</p><h2>Phòng đang sẵn sàng</h2><p>Chọn ngày lưu trú để xem phòng và giá thực tế.</p></div><span id="date-summary"></span></div>
+      <div id="room-results" class="room-results" aria-live="polite">Đang tìm phòng...</div>
+    </section>
+    <section class="contact-section" id="contact">
+      <p class="eyebrow">AN NHIÊN HOTEL &amp; RESORT</p>
+      <h2>Chúng tôi sẵn sàng chào đón bạn.</h2>
+      <p>Chọn phòng và gửi đặt chỗ trực tuyến. Để thay đổi đặt chỗ, vui lòng liên hệ lễ tân tại khách sạn.</p>
+      <a href="#rooms">Xem phòng khả dụng <span aria-hidden="true">→</span></a>
+    </section>
+  </main>
+  <footer class="site-footer"><span>An Nhiên <small>HOTEL &amp; RESORT</small></span><a href="/">Đăng nhập quản lý</a></footer>
+  <dialog id="reservation-dialog"></dialog>
+  <dialog id="customer-dialog" aria-label="Tài khoản khách hàng"></dialog>
+  <div id="site-toast" role="status" aria-live="polite"></div>
+</body>
+</html>

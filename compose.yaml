@@ -1,0 +1,100 @@
+name: hotel-management
+services:
+  hotel:
+    build: .
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Storage__DataDirectory: /var/lib/hotel
+      Backup__RetentionDays: ${HOTEL_BACKUP_RETENTION_DAYS:-14}
+      Backup__MaxBackups: ${HOTEL_BACKUP_MAX_COUNT:-30}
+      Hotel__TimeZone: ${HOTEL_TIME_ZONE:-Asia/Ho_Chi_Minh}
+      Deployment__RequireHttps: "true"
+      ReverseProxy__Enabled: "true"
+      ReverseProxy__KnownProxies__0: ${HOTEL_PROXY_IP:-172.30.87.3}
+      AllowedHosts: "${HOTEL_DOMAIN:?Set HOTEL_DOMAIN in .env};hotel;localhost;127.0.0.1"
+      BootstrapAdmin__PasswordFile: /run/secrets/bootstrap_admin_password
+      Monitoring__ScrapeKeyFile: /run/secrets/monitoring_key
+      Payments__BankConfigFile: /var/lib/hotel/bank-config.json
+      CustomerEmail__PublicBaseUrl: https://${HOTEL_DOMAIN}
+    secrets:
+      - bootstrap_admin_password
+      - monitoring_key
+    volumes:
+      - hotel_data:/var/lib/hotel
+    expose:
+      - "8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks:
+      hotel_net:
+        ipv4_address: ${HOTEL_APP_IP:-172.30.87.2}
+    logging: &logs
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      hotel:
+        condition: service_healthy
+    environment:
+      HOTEL_DOMAIN: ${HOTEL_DOMAIN:?Set HOTEL_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      hotel_net:
+        ipv4_address: ${HOTEL_PROXY_IP:-172.30.87.3}
+    logging: *logs
+
+  prometheus:
+    image: prom/prometheus:latest
+    profiles: [monitoring]
+    restart: unless-stopped
+    depends_on:
+      hotel:
+        condition: service_healthy
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    ports:
+      - "127.0.0.1:9090:9090"
+    secrets:
+      - monitoring_key
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - hotel_net
+    logging: *logs
+
+secrets:
+  bootstrap_admin_password:
+    file: ./deploy/secrets/bootstrap_admin_password.txt
+  monitoring_key:
+    file: ./deploy/secrets/monitoring_key.txt
+volumes:
+  hotel_data:
+  caddy_data:
+  caddy_config:
+  prometheus_data:
+networks:
+  hotel_net:
+    ipam:
+      config:
+        - subnet: ${HOTEL_SUBNET:-172.30.87.0/29}

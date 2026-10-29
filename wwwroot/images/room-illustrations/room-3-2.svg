@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-label="Hình minh họa phòng, không phải ảnh thực tế">
+<defs><linearGradient id="wall" x2="0" y2="1"><stop stop-color="#f0e3db"/><stop offset="1" stop-color="#fffaf2"/></linearGradient><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#c6e2df"/><stop offset="1" stop-color="#edf1d9"/></linearGradient><linearGradient id="bed" x2="0" y2="1"><stop stop-color="#fffdf7"/><stop offset="1" stop-color="#ddd2c2"/></linearGradient></defs>
+<path fill="url(#wall)" d="M0 0h1200v620H0z"/><path fill="#bea98b" d="M0 620h1200v180H0z"/><path fill="#d8c5aa" d="M0 620h1200v20H0z"/>
+<rect x="650" y="100" width="340" height="430" rx="6" fill="#744e40"/><rect x="665" y="115" width="310" height="400" fill="url(#sky)"/><path d="M665 400q140-130 310-10v125H665z" fill="#8ab1a2"/><path d="M665 455q160-100 310-25v85H665z" fill="#a6c4b0"/><path d="M820 115v400" stroke="#f3f0e6" stroke-width="12"/>
+<path fill="#ebe0cd" d="M615 70h45v510h-80q45-250 35-510M990 70h45q-10 280 35 510h-80z"/>
+<ellipse cx="480" cy="715" rx="380" ry="45" fill="#847963" opacity=".18"/><rect x="145" y="320" width="570" height="310" rx="45" fill="#744e40"/><rect x="120" y="460" width="620" height="260" rx="24" fill="url(#bed)"/><rect x="150" y="420" width="250" height="120" rx="25" fill="#fffdf8"/><rect x="435" y="420" width="250" height="120" rx="25" fill="#f5efdf"/><path fill="#aeba91" d="M120 595h620v75H120z"/><path d="M128 720v35m604-35v35" stroke="#4e4539" stroke-width="16"/>
+<rect x="48" y="525" width="75" height="120" rx="8" fill="#8a7053"/><path d="M85 520V405m-40 0h80l-15-90H60z" fill="#f4e5be" stroke="#8a7053" stroke-width="5"/>
+<rect x="1020" y="600" width="80" height="100" rx="13" fill="#aeba91"/><path d="M1060 602V430m0 95q-110-90-90-140 90 0 90 140m0-35q75-100 100-90 10 75-100 90" fill="#55755b" stroke="#55755b" stroke-width="7"/>
+<rect x="445" y="115" width="150" height="125" fill="#b39674"/><rect x="455" y="125" width="130" height="105" fill="#fff7e9"/><path d="m465 220 35-65 35 40 40-35v60z" fill="#aeba91"/>
+<rect x="36" y="738" width="415" height="40" rx="20" fill="#fffdf4" opacity=".94"/><text x="56" y="764" fill="#506659" font-size="19" font-family="Arial,sans-serif">Hình minh họa · Chưa có ảnh phòng thực tế</text>
+</svg>
