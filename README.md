@@ -2,6 +2,12 @@
 
 Một project ASP.NET Core 8 chứa cả API và giao diện quản lý khách sạn. Dữ liệu lưu trong SQLite tại `hotel.db` cạnh file project; ứng dụng tự tạo cơ sở dữ liệu và áp dụng EF Core migrations khi chạy lần đầu. Không cần SQL Server hoặc chạy frontend riêng.
 
+## Tạo dữ liệu phòng mẫu trên website mới
+
+Đăng nhập Admin ở `/index.html`, mở **Quản lý phòng → Tạo dữ liệu mẫu** khi danh sách còn trống. Tạo 3 hạng phòng Standard/Deluxe/Family (đều ghi rõ mẫu), 6 phòng M101–M302 có sức chứa, diện tích, giường, tiện nghi và hình SVG minh họa; giá lần lượt 450.000đ, 750.000đ và 1.100.000đ/đêm. Chỉnh lại theo khách sạn thực tế trước khi nhận khách thật. Không tạo tài khoản, hồ sơ khách, booking, khoản thu hay cấu hình ngân hàng giả.
+
+API `POST /api/Administration/demo-rooms` chỉ dành cho Admin, dùng transaction và audit. Nếu đã có bất kỳ phòng nào thì giữ nguyên, không thêm/ghi đè. Retry hoặc nhiều người bấm đồng thời không tạo trùng. Không có tác vụ tự động chèn dữ liệu mẫu khi khởi động và không cần migration mới. Kiểm thử `node tests/run-demo-rooms.mjs`, tùy chọn `HOTEL_DEMO_UI=1` cùng Playwright/Edge. Render không có persistent disk vẫn có thể mất dữ liệu khi restart/redeploy; nút này chỉ tạo mẫu, không thay thế lưu trữ bền vững.
+
 ## Sửa ngân hàng webhook, hoàn tiền và tên dịch vụ — 29/10/2026
 
 - Webhook phải có `gateway` được nhận diện và trùng ngân hàng đã cấu hình, cùng đúng tài khoản nhận. So sánh theo bảng alias rõ ràng (MB/MBBank/970422, VCB/Vietcombank/970436...), bỏ qua khác biệt hoa/thường/khoảng trắng. Không dùng tên hiển thị Admin tự nhập để xác nhận ngân hàng. Gateway thiếu, không biết hoặc khác ngân hàng trả **400** trước khi lưu receipt/ghi tiền; ID bị từ chối vẫn dùng được khi nhận payload hợp lệ sau đó. Tên trường theo [SePay webhook](https://developer.sepay.vn/vi/sepay-webhooks/tich-hop-webhook); mã/BIN đối chiếu [danh sách VietQR](https://api.vietqr.io/v2/banks). Ngân hàng chưa có alias phải được bổ sung và kiểm thử trước khi bật tự nhận webhook.
