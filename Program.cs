@@ -53,6 +53,15 @@ System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = System.Globaliz
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(options => { options.UseUtcTimestamp = true; options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ"; });
+
+// Xử lý Forwarded Headers cho Render/Proxy (chống vòng lặp ERR_TOO_MANY_REDIRECTS)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var storage = new HotelStorage(builder.Environment, builder.Configuration);
 HotelRecoverySettings.Load(builder, storage);
 Directory.CreateDirectory(storage.Root);
@@ -61,34 +70,13 @@ var hotelTimeZone = TimeZoneInfo.FindSystemTimeZoneById(builder.Configuration["H
 builder.Services.AddSingleton<TimeProvider>(new HotelTimeProvider(hotelTimeZone));
 builder.Services.AddSingleton<OperationalMetrics>();
 builder.Services.AddHealthChecks().AddCheck<HotelReadinessCheck>("hotel-storage", tags: ["ready"], timeout: TimeSpan.FromSeconds(3));
-var reverseProxyEnabled = builder.Configuration.GetValue<bool>("ReverseProxy:Enabled");
-if (reverseProxyEnabled)
-{
-    var proxies = builder.Configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>() ?? [];
-    if (proxies.Length == 0 || proxies.Any(value => !IPAddress.TryParse(value, out _)))
-        throw new InvalidOperationException("ReverseProxy:KnownProxies must contain explicit trusted proxy IP addresses.");
-    builder.Services.Configure<ForwardedHeadersOptions>(options =>
-    {
-        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-        options.ForwardLimit = 1;
-        options.RequireHeaderSymmetry = true;
-        options.KnownNetworks.Clear(); options.KnownProxies.Clear();
-        foreach (var value in proxies)
-        {
-            var proxy = IPAddress.Parse(value);
-            options.KnownProxies.Add(proxy);
-            if (proxy.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) options.KnownProxies.Add(proxy.MapToIPv6());
-        }
-    });
-}
-var requireHttps = builder.Configuration.GetValue<bool?>("Deployment:RequireHttps") ?? !builder.Environment.IsDevelopment();
-builder.Services.AddHttpsRedirection(options => options.HttpsPort = 443);
-builder.Services.AddHsts(options => { options.MaxAge = TimeSpan.FromDays(180); options.IncludeSubDomains = false; });
+
 var scrapeKey = DeploymentSecrets.Read(builder.Configuration, "Monitoring:ScrapeKey");
 var dataProtection = builder.Services.AddDataProtection().PersistKeysToFileSystem(
     new DirectoryInfo(Path.Combine(storage.Root, "data-protection-keys")));
 if (builder.Configuration["DataProtection:ApplicationName"] is { Length: > 0 } applicationName)
     dataProtection.SetApplicationName(applicationName);
+
 var connection = new SqliteConnectionStringBuilder(
     builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=hotel.db");
 if (!Path.IsPathRooted(connection.DataSource))
@@ -114,10 +102,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true, ValidIssuer = "HotelManagementAPI",
-            ValidateAudience = true, ValidAudience = "HotelManagementFrontend",
-            ValidateIssuerSigningKey = true, IssuerSigningKey = signingKey,
-            ValidateLifetime = true, ClockSkew = TimeSpan.Zero
+            ValidateIssuer = true,
+            ValidIssuer = "HotelManagementAPI",
+            ValidateAudience = true,
+            ValidAudience = "HotelManagementFrontend",
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = signingKey,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
         };
         options.Events = new JwtBearerEvents
         {
@@ -168,7 +160,9 @@ builder.Services.AddRateLimiter(options =>
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
             }));
     foreach (var policy in new[] { "customer-login", "customer-register", "customer-forgot", "customer-reset", "customer-password" })
         options.AddPolicy(policy, context => RateLimitPartition.GetFixedWindowLimiter(
@@ -180,7 +174,9 @@ builder.Services.AddRateLimiter(options =>
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
             }));
 });
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
@@ -202,7 +198,9 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Hotel Management API", Version = "v1" });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
         In = ParameterLocation.Header
     });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -215,6 +213,10 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// Luôn đặt ForwardedHeaders lên ĐẦU TIÊN
+app.UseForwardedHeaders();
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<HotelDbContext>();
@@ -226,8 +228,11 @@ using (var scope = app.Services.CreateScope())
             throw new InvalidOperationException("Configure BootstrapAdmin__Password with at least 12 characters and at most 72 UTF-8 bytes before initializing the administrator. No default administrator password is provided.");
         db.Users.Add(new User
         {
-            Username = "admin", FullName = "Quản trị viên", Role = Roles.Admin,
-            Email = "admin@hotel.local", PasswordHash = BCrypt.Net.BCrypt.HashPassword(initialPassword!),
+            Username = "admin",
+            FullName = "Quản trị viên",
+            Role = Roles.Admin,
+            Email = "admin@hotel.local",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(initialPassword!),
             MustChangePassword = true
         });
         db.Services.AddRange(
@@ -235,35 +240,31 @@ using (var scope = app.Services.CreateScope())
             new HotelService { Name = "Bữa sáng", Unit = "Suất", Price = 150000 });
         await db.SaveChangesAsync();
     }
-    // Existing installations keep their credentials; restrict legacy default administrators.
     var legacyAdmins = await db.Users.Where(x => x.Role == Roles.Admin && !x.MustChangePassword).ToListAsync();
     foreach (var admin in legacyAdmins)
         if (BCrypt.Net.BCrypt.Verify("admin123", admin.PasswordHash)) admin.MustChangePassword = true;
     if (legacyAdmins.Any(x => x.MustChangePassword)) await db.SaveChangesAsync();
-    var workflow=scope.ServiceProvider.GetRequiredService<HotelWorkflow>();
-    var legacy=await ApiSupport.FullBookings(db).Where(x=>x.Status==BookingStates.CheckedOut && !db.BookingInvoices.Any(i=>i.BookingId==x.Id)).ToListAsync();
-    foreach(var booking in legacy) workflow.IssueInvoice(booking);
-    if(legacy.Count>0)await db.SaveChangesAsync();
+    var workflow = scope.ServiceProvider.GetRequiredService<HotelWorkflow>();
+    var legacy = await ApiSupport.FullBookings(db).Where(x => x.Status == BookingStates.CheckedOut && !db.BookingInvoices.Any(i => i.BookingId == x.Id)).ToListAsync();
+    foreach (var booking in legacy) workflow.IssueInvoice(booking);
+    if (legacy.Count > 0) await db.SaveChangesAsync();
 }
-if (reverseProxyEnabled) app.UseForwardedHeaders();
+
 app.UseMiddleware<RequestMonitoringMiddleware>();
 app.UseMiddleware<ApiErrorMiddleware>();
-if (requireHttps)
+
+// Luôn kích hoạt Swagger trên Cloud (kể cả môi trường Production)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    if (!app.Environment.IsDevelopment()) app.UseHsts();
-    app.UseWhen(context => !DeploymentHealth.IsProbe(context), branch => branch.UseHttpsRedirection());
-}
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hotel Management API v1");
+});
+
 app.UseDefaultFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = context =>
     {
-        // Revalidate entry pages and executable assets after updates; keep image/font caching.
         var extension = Path.GetExtension(context.File.Name).ToLowerInvariant();
         if (extension is ".html" or ".js" or ".css")
             context.Context.Response.Headers.CacheControl = "no-cache";
@@ -285,4 +286,5 @@ app.MapControllers();
 app.MapFallback("/api/{**path}", (HttpContext context) => Results.Json(
     ApiErrors.Create(context, StatusCodes.Status404NotFound, "Đường dẫn API không tồn tại."), statusCode: 404));
 app.MapFallbackToFile("index.html");
+
 app.Run();
