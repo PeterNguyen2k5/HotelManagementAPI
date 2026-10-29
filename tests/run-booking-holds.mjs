@@ -98,6 +98,7 @@ try {
   await page.keyboard.press('Escape');assert.equal(await page.locator('#guest-notification-panel').isVisible(),false);checks++;
   await page.goto(base+'/payment.html?bookingId='+h4.id);await page.locator('#payment-hold-notice [data-hold-clock]').waitFor();
   const seconds=()=>page.locator('#payment-hold-notice [data-hold-clock]').innerText().then(x=>x.split(':').reduce((m,n)=>m*60+Number(n),0));
+  await page.waitForFunction(()=>/^\d{2}:\d{2}$/.test(document.querySelector('#payment-hold-notice [data-hold-clock]').textContent));
   const initialSeconds=await seconds();await page.waitForTimeout(2100);
   await page.locator('#card-deposit .method-head strong').click();
   assert.ok(await seconds()<=initialSeconds-1,'Switching the payment method must not restart the countdown.');checks++;

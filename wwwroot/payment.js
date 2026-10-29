@@ -333,7 +333,7 @@ function renderBookingData() {
 }
 
 function showSuccessBoard(data) {
-  isPaymentCompleted = true;
+  isPaymentCompleted = data.payment?.type !== 'Direct';
   stopSepayPolling();
 
   const p = data.payment || {};
@@ -583,7 +583,10 @@ function renderPaymentHold() {
   const element = document.getElementById('payment-hold-notice');
   if (element) {
     const markup = window.bookingHold.markup(booking);
-    if (element.innerHTML !== markup) element.innerHTML = markup;
+    if (element.dataset.holdMarkup !== markup) {
+      element.dataset.holdMarkup = markup; element.innerHTML = markup;
+    }
+    window.bookingHold.tick();
   }
 }
 window.addEventListener('booking-hold-expired', () => {
@@ -592,3 +595,5 @@ window.addEventListener('booking-hold-expired', () => {
   if (isPaymentCompleted) isPaymentCompleted = false;
   checkSepayPaymentStatus();
 });
+
+setInterval(() => { if (booking?.awaitingPayment && !pollTimer && !document.hidden) checkSepayPaymentStatus(); }, 15000);
