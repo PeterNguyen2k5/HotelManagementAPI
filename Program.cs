@@ -260,7 +260,10 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hotel Management API v1");
 });
 
-app.UseDefaultFiles();
+var defaultFileOptions = new DefaultFilesOptions();
+defaultFileOptions.DefaultFileNames.Clear();
+defaultFileOptions.DefaultFileNames.Add("hotel.html"); // Đổi thành tên file HTML trang khách của bạn
+app.UseDefaultFiles(defaultFileOptions);
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = context =>
@@ -285,6 +288,6 @@ app.MapGet("/api/HotelConfiguration", (HttpContext context, TimeProvider clock) 
 app.MapControllers();
 app.MapFallback("/api/{**path}", (HttpContext context) => Results.Json(
     ApiErrors.Create(context, StatusCodes.Status404NotFound, "Đường dẫn API không tồn tại."), statusCode: 404));
-app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("hotel.html");
 
 app.Run();
