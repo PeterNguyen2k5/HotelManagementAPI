@@ -69,6 +69,14 @@ public sealed class BookingsController(HotelDbContext db, TimeProvider clock, Ho
         return booking is null ? NotFound() : Ok(ApiSupport.BookingView(booking));
     }
 
+    [HttpGet("guest-options"), AllowAnonymous]
+    public async Task<IActionResult> GuestOptions(CancellationToken cancellationToken)
+    {
+        Response.Headers.CacheControl = "no-store";
+        var capacity = await db.Rooms.AsNoTracking().Select(x => (int?)x.Capacity).MaxAsync(cancellationToken);
+        return Ok(new { maxGuests = Math.Clamp(capacity ?? 1, 1, 100) });
+    }
+
     [HttpGet("available-rooms"), AllowAnonymous]
     public async Task<IActionResult> Available([FromQuery] AvailableRoomsQuery query)
     {

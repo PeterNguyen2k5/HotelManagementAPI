@@ -4,6 +4,9 @@ const dialog = document.getElementById('reservation-dialog');
 const toast = document.getElementById('site-toast');
 let availableRooms = [];
 let roomSearchRevision = 0;
+let guestOptionsRequest = null;
+let guestOptionsInitialized = false;
+let maximumGuests = 100;
 
 function localDate(offset = 0) {
   return window.hotelTime.day(offset);
@@ -55,6 +58,32 @@ function validDates(start, end) {
   if (!start || !end || end <= start) throw new Error('Ngày trả phòng phải sau ngày nhận phòng.');
   if (start < localDate()) throw new Error('Ngày nhận phòng không thể ở trong quá khứ.');
 }
+function validGuestCount(count, maximum) {
+  if (!Number.isInteger(count) || count < 1 || count > maximum)
+    throw new Error('Vui lòng chọn từ 1 đến '+maximum+' khách trong một phòng.');
+}
+async function loadGuestOptions() {
+  if (guestOptionsRequest) return guestOptionsRequest;
+  guestOptionsRequest = (async () => {
+    const data = await request('/api/Bookings/guest-options', { signal: AbortSignal.timeout(15000) });
+    if (!Number.isInteger(data?.maxGuests) || data.maxGuests < 1 || data.maxGuests > 100)
+      throw new Error('Chưa tải được số khách tối đa. Vui lòng thử lại.');
+    const select = searchForm.elements.namedItem('guests');
+    const selected = guestOptionsInitialized ? Number(select.value) : Math.min(2, data.maxGuests);
+    maximumGuests = data.maxGuests;
+    if (!guestOptionsInitialized || select.dataset.maximum !== String(maximumGuests)) {
+      const options = Array.from({length:maximumGuests}, (_,index) => new Option((index+1)+' khách, 1 phòng',String(index+1)));
+      // Never silently change a group of 20 guests into a smaller booking after a catalog edit.
+      if (selected > maximumGuests) options.push(new Option(selected+' khách (vượt sức chứa hiện tại)',String(selected)));
+      select.replaceChildren(...options);
+      select.value = String(selected);
+      select.dataset.maximum = String(maximumGuests);
+    }
+    select.disabled = false;
+    guestOptionsInitialized = true;
+  })();
+  try { await guestOptionsRequest; } finally { guestOptionsRequest = null; }
+}
 function renderRooms(rooms) {
   if (!rooms.length) {
     roomResults.innerHTML = '<div class="empty-room">Không có phòng khả dụng trong khoảng ngày này. Hãy thử ngày khác.</div>';
@@ -73,8 +102,11 @@ async function loadRooms(scroll = false) {
   submit.disabled = true;
   roomResults.textContent = 'Đang tìm phòng...';
   try {
+    await loadGuestOptions();
+    if (revision !== roomSearchRevision) return;
     const { checkInDate, checkOutDate, guestCount } = currentDates();
     validDates(checkInDate, checkOutDate);
+    validGuestCount(guestCount, maximumGuests);
     const query = new URLSearchParams({ checkInDate, checkOutDate, guestCount });
     const rooms = await request('/api/Bookings/available-rooms?' + query, { signal: AbortSignal.timeout(20000) });
     if (revision !== roomSearchRevision) return;
@@ -100,6 +132,7 @@ async function openReservation(room, selection = currentDates(), note = '') {
   await customerSessionReady;
   const { checkInDate, checkOutDate, guestCount } = selection;
   validDates(checkInDate, checkOutDate);
+  validGuestCount(guestCount, 100);
   if (guestCount > room.capacity) { showToast("Phòng không đủ chỗ cho số khách đã chọn.", true); return; }
   if (!customerSession.token || !customerSession.account) {
     showCustomerAuth('login', () => openReservation(room, selection, note));

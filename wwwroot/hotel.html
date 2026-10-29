@@ -14,7 +14,7 @@
   <script src="/booking-hold.js?v=20261029-holds-1" defer></script>
   <script src="/hotel-time.js?v=20261027-deploy-1" defer></script>
   <script src="/customer-auth.js?v=20261028-account-1" defer></script>
-  <script src="/hotel.js?v=20261027-deploy-1" defer></script>
+  <script src="/hotel.js?v=20261029-guests-1" defer></script>
   <script src="/room-details.js?v=20261027-portal-2" defer></script>
   <script src="/guest-operations.js?v=20261027-portal-2" defer></script>
   <script src="/hero-ocean.js?v=20261027-portal-2" type="module"></script>
@@ -47,7 +47,7 @@
       <form class="search-card" id="search-form">
         <label>NHẬN PHÒNG<input type="date" name="checkInDate" required></label>
         <label>TRẢ PHÒNG<input type="date" name="checkOutDate" required></label>
-        <label>KHÁCH<select name="guests"><option value="1">1 người lớn, 1 phòng</option><option value="2" selected>2 người lớn, 1 phòng</option><option value="3">3 người lớn, 1 phòng</option><option value="4">4 người lớn, 1 phòng</option></select></label>
+        <label>KHÁCH<select name="guests" aria-label="Số khách trong một phòng" required disabled><option value="2" selected>Đang tải số khách…</option></select></label>
         <button type="submit">Tìm phòng <span aria-hidden="true">›</span></button>
       </form>
     </section>
