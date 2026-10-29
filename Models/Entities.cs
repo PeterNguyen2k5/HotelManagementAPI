@@ -75,6 +75,8 @@ public sealed class Booking
     public int RoomId { get; set; }
     public Room Room { get; set; } = null!;
     public int Revision { get; set; }
+    public DateTime? PaymentDueAtUtc { get; set; }
+    public DateTime? HoldExpiredAtUtc { get; set; }
     public DateTime? CurrentRoomSince { get; set; }
     public ICollection<RoomCharge> RoomCharges { get; set; } = new List<RoomCharge>();
     public ICollection<BookingPayment> Payments { get; set; } = new List<BookingPayment>();

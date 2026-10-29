@@ -48,8 +48,7 @@ public sealed class HotelWorkflow(HotelDbContext db, TimeProvider clock)
         var occupied=await db.Bookings.AnyAsync(x=>x.RoomId==target.Id && x.Status==BookingStates.CheckedIn && x.Id!=b.Id);
         if(target.Status==RoomStatus.Occupied && !occupied && !(staying && !move)) throw new WorkflowConflict("Trạng thái phòng không khả dụng.");
         var overlapStart=staying?Now.Date:start;
-        if(await db.Bookings.AnyAsync(x=>x.Id!=b.Id && x.RoomId==target.Id &&
-            (x.Status==BookingStates.Reserved || x.Status==BookingStates.CheckedIn) &&
+        if(await BookingHolds.Blocking(db, clock.GetUtcNow().UtcDateTime).AnyAsync(x=>x.Id!=b.Id && x.RoomId==target.Id &&
             ((x.Status==BookingStates.CheckedIn && x.CheckOutDate<=Now.Date) || (x.CheckInDate<end && overlapStart<x.CheckOutDate))))
             throw new WorkflowConflict("Phòng có lịch đặt trùng hoặc khách quá hạn chưa trả phòng.");
         if(staying && move)

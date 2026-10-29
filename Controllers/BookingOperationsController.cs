@@ -14,7 +14,7 @@ namespace HotelManagementAPI.Controllers;
 
 [ApiController,Route("api/BookingOperations"),Authorize]
 public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow workflow,
-    IWebHostEnvironment environment, IConfiguration configuration, BankTransferReconciliation reconciliation, HotelStorage storage) : ControllerBase
+    IWebHostEnvironment environment, IConfiguration configuration, BankTransferReconciliation reconciliation, HotelStorage storage, BookingHolds holds, TimeProvider clock) : ControllerBase
 {
     [HttpPost("{id:int}/amend"), Authorize(Roles = Roles.Staff)]
     public async Task<IActionResult> Amend(int id,AmendBooking request)
@@ -23,6 +23,7 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
             await using var tx=await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             var b=await ApiSupport.FullBookings(db).FirstOrDefaultAsync(x=>x.Id==id);
             if(b is null)return NotFound();
+            if(await holds.TryExpire(b)){await db.SaveChangesAsync();await tx.CommitAsync();return Conflict(new {message=BookingHolds.ExpiredMessage});}
             await workflow.Amend(b,request);await db.SaveChangesAsync();await tx.CommitAsync();
             return Ok(ApiSupport.BookingView(b));
         }catch(WorkflowConflict ex){return Conflict(new {message=ex.Message});}
@@ -53,6 +54,7 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
                 return Ok(PaymentView(duplicate));
             var b=await ApiSupport.FullBookings(db).FirstOrDefaultAsync(x=>x.Id==id);
             if(b is null)return NotFound();
+            if(await holds.TryExpire(b)){await db.SaveChangesAsync();await tx.CommitAsync();return Conflict(new {message=BookingHolds.ExpiredMessage});}
             if (request.Method == "Transfer")
             {
                 var config = LoadBankConfig();
@@ -151,6 +153,8 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
     [HttpGet("{id:int}/public-info"), Authorize(Roles = Roles.Customer + "," + Roles.Staff)]
     public async Task<IActionResult> PublicInfo(int id)
     {
+        await holds.Reap();
+        Response.Headers.CacheControl = "no-store";
         var b = await ApiSupport.FullBookings(db).AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (b is null) return NotFound(new { message = "Không tìm thấy thông tin đặt phòng." });
         if (!await CanAccess(b)) return NotFound();
@@ -172,6 +176,8 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
             checkInDate = b.CheckInDate,
             checkOutDate = b.CheckOutDate,
             status = b.Status,
+            paymentDueAtUtc = BookingHolds.Utc(b.PaymentDueAtUtc), holdExpiredAtUtc = BookingHolds.Utc(b.HoldExpiredAtUtc),
+            awaitingPayment = BookingHolds.AwaitingPayment(b), serverTimeUtc = clock.GetUtcNow(),
             balance,
             payments = b.Payments.OrderBy(x => x.Id).Select(PaymentView)
         });
@@ -185,6 +191,7 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
             await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             var booking = await ApiSupport.FullBookings(db).FirstOrDefaultAsync(x => x.Id == id);
             if (booking is null || !await CanAccess(booking)) return NotFound();
+            if(await holds.TryExpire(booking)){await db.SaveChangesAsync();await tx.CommitAsync();return Conflict(new {message=BookingHolds.ExpiredMessage});}
             if (request.Type != "Direct") return Conflict(new { message = "Chuyển khoản chỉ được ghi nhận sau xác nhận ngân hàng hoặc lễ tân." });
             if (request.Amount != 0 || request.Method != "Cash")
                 return BadRequest(new { message = "Chọn thanh toán tại quầy không ghi nhận tiền đã thu." });
@@ -255,6 +262,8 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
     [HttpGet("{id:int}/payment-status"), Authorize(Roles = Roles.Customer + "," + Roles.Staff)]
     public async Task<IActionResult> PaymentStatus(int id)
     {
+        await holds.Reap();
+        Response.Headers.CacheControl = "no-store";
         var b = await ApiSupport.FullBookings(db).AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (b is null) return NotFound(new { message = "Không tìm thấy booking." });
         if (!await CanAccess(b)) return NotFound();
@@ -270,6 +279,8 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
             hasPaid = net > 0,
             payAtHotel = b.Payments.Any(p => p.Type == "Direct"),
             status = b.Status,
+            paymentDueAtUtc = BookingHolds.Utc(b.PaymentDueAtUtc), holdExpiredAtUtc = BookingHolds.Utc(b.HoldExpiredAtUtc),
+            awaitingPayment = BookingHolds.AwaitingPayment(b), serverTimeUtc = clock.GetUtcNow(),
             latestPayment = latestPayment != null ? PaymentView(latestPayment) : null
         });
     }
@@ -319,6 +330,7 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
             await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             var booking = await ApiSupport.FullBookings(db).FirstOrDefaultAsync(x => x.Id == id);
             if (booking is null) return NotFound();
+            if(await holds.TryExpire(booking)){await db.SaveChangesAsync();await tx.CommitAsync();return Conflict(new {message=BookingHolds.ExpiredMessage});}
             if (booking.Status == BookingStates.Cancelled) return Conflict(new { message = "Booking đã hủy." });
             var remaining = Math.Max(0, HotelWorkflow.Gross(booking) - HotelWorkflow.Paid(booking));
             var amount = request?.Amount is > 0 ? Math.Min(remaining, request.Amount.Value) : remaining;

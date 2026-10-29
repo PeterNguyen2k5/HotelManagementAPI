@@ -58,7 +58,7 @@ try{
  assert.ok(!(await page.content()).includes('090123456789'));
  await page.locator('#btn-confirm-direct').click();
  await expect(page.locator('#success-dialog')).toBeVisible();
- await expect(page.locator('#suc-title')).toHaveText('Đã ghi nhận lựa chọn thanh toán');
+ await expect(page.locator('#suc-title')).toHaveText('Chưa thanh toán · hạn giữ chỗ vẫn là 30 phút');
  await expect(page.locator('#suc-payment-type')).toHaveText('Chọn thanh toán tại khách sạn');
  await expect(page.locator('#suc-payment-method')).toHaveText('Tiền mặt tại quầy');
  await expect(page.locator('#suc-paid-now')).toContainText('Chờ thanh toán');

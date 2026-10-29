@@ -7,8 +7,10 @@
   <link rel="stylesheet" href="/fonts.css?v=20261027-portal-2">
   <link rel="stylesheet" href="/payment.css?v=20261027-deposit-1">
   <script src="/api-errors.js?v=20261027-portal-2" defer></script>
+  <script src="/booking-hold.js?v=20261029-holds-1" defer></script>
   <script src="/hotel-time.js?v=20261027-deploy-1" defer></script>
-  <script src="/payment.js?v=20261028-payment-method-1" defer></script>
+  <script src="/payment.js?v=20261029-holds-1" defer></script>
+  <link rel="stylesheet" href="/customer-notifications.css?v=20261029-holds-1">
 </head>
 <body>
   <header class="pay-header">
@@ -41,6 +43,7 @@
             <span class="step-num">1</span>
             <h2>Thông tin đặt phòng</h2>
           </div>
+          <div id="payment-hold-notice"></div>
           <div class="booking-id-tag" id="summary-booking-id">Booking #...</div>
 
           <div class="summary-details">

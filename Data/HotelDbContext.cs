@@ -6,6 +6,7 @@ namespace HotelManagementAPI.Data;
 public sealed class HotelDbContext(DbContextOptions<HotelDbContext> options, IHttpContextAccessor? http = null, TimeProvider? clock = null) : DbContext(options)
 {
     public DbSet<CustomerAccount> CustomerAccounts => Set<CustomerAccount>();
+    public DbSet<CustomerNotificationRead> CustomerNotificationReads => Set<CustomerNotificationRead>();
     public DbSet<BookingRequest> BookingRequests => Set<BookingRequest>();
     public DbSet<BookingPayment> BookingPayments => Set<BookingPayment>();
     public DbSet<BankPaymentOperation> BankPaymentOperations => Set<BankPaymentOperation>();
@@ -27,6 +28,10 @@ public sealed class HotelDbContext(DbContextOptions<HotelDbContext> options, IHt
 
     protected override void OnModelCreating(ModelBuilder b)
     {
+        b.Entity<CustomerNotificationRead>().HasKey(x => new { x.CustomerId, x.EventKey });
+        b.Entity<CustomerNotificationRead>().Property(x => x.EventKey).HasMaxLength(80);
+        b.Entity<CustomerNotificationRead>().HasOne<Customer>().WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<Booking>().HasIndex(x => new { x.Status, x.PaymentDueAtUtc });
         b.Entity<BankPaymentOperation>().HasKey(x => x.RequestId);
         b.Entity<BankPaymentOperation>().Property(x => x.RequestId).HasMaxLength(36);
         b.Entity<BankPaymentOperation>().Property(x => x.Fingerprint).HasMaxLength(64);
@@ -96,7 +101,7 @@ public sealed class HotelDbContext(DbContextOptions<HotelDbContext> options, IHt
         foreach (var entry in ChangeTracker.Entries().Where(entry => entry.State == EntityState.Added))
             foreach (var property in entry.Properties.Where(property => property.Metadata.Name is "CreatedAt" or "UsedAt" or "IssuedAt"))
                 if (property.CurrentValue is DateTime value && value == default) property.CurrentValue = now;
-        var safe = new HashSet<string> { "Status", "RoomId", "CheckInDate", "CheckOutDate", "Price", "Capacity", "IsActive", "Amount", "Type" };
+        var safe = new HashSet<string> { "Status", "RoomId", "CheckInDate", "CheckOutDate", "Price", "Capacity", "IsActive", "Amount", "Type", "PaymentDueAtUtc", "HoldExpiredAtUtc" };
         var transferSafe = new HashSet<string> { "SepayId", "BookingId", "PaymentId", "Reason" };
         var entries = ChangeTracker.Entries().Where(e=>e.Entity is not AuditLog && e.State is Microsoft.EntityFrameworkCore.EntityState.Added or Microsoft.EntityFrameworkCore.EntityState.Modified or Microsoft.EntityFrameworkCore.EntityState.Deleted)
             .Select(e=>new { Entry=e, Action=e.State.ToString(), Summary=string.Join("; ",e.Properties.Where(p=>(safe.Contains(p.Metadata.Name) || e.Entity is BankTransfer && transferSafe.Contains(p.Metadata.Name)) && (e.State==Microsoft.EntityFrameworkCore.EntityState.Added || p.IsModified)).Select(p=>p.Metadata.Name+": "+p.CurrentValue)) }).ToList();

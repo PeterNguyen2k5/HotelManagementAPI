@@ -84,6 +84,8 @@ if (!Path.IsPathRooted(connection.DataSource))
 builder.Services.AddDbContext<HotelDbContext>(options => options.UseSqlite(connection.ToString()));
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<HotelWorkflow>();
+builder.Services.AddScoped<BookingHolds>();
+builder.Services.AddHostedService<BookingHoldExpiryService>();
 builder.Services.AddScoped<BankTransferReconciliation>();
 builder.Services.AddSingleton<BackupService>();
 builder.Services.AddOptions<BackupOptions>().Bind(builder.Configuration.GetSection("Backup"))

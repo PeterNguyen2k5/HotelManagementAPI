@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HotelManagementAPI.Services;
 
-public sealed class BankTransferReconciliation(HotelDbContext db, HotelWorkflow workflow)
+public sealed class BankTransferReconciliation(HotelDbContext db, HotelWorkflow workflow, BookingHolds holds, TimeProvider clock)
 {
     public static string RequestId(long id) => "sepay-" + id;
 
@@ -235,6 +235,7 @@ public sealed class BankTransferReconciliation(HotelDbContext db, HotelWorkflow 
                 return transfer;
             }
             var booking = await ApiSupport.FullBookings(db).FirstOrDefaultAsync(x => x.Id == suggestion);
+            if (booking is not null) await holds.TryExpire(booking);
             var reason = PendingReason(transfer, booking);
             if (reason is null) AddPayment(transfer, booking!, "SePay Auto Webhook", "Tự động khớp mã đặt phòng.");
             else transfer.Reason = reason;
@@ -277,14 +278,16 @@ public sealed class BankTransferReconciliation(HotelDbContext db, HotelWorkflow 
         if (!recordAsNew && await PossibleManualPayment(transfer, bookingId))
             throw new WorkflowConflict("Có thể đã thu chuyển khoản này. Chọn khoản đã thu để liên kết, hoặc xác nhận đây là khoản mới sau khi kiểm tra.");
         var booking = await ApiSupport.FullBookings(db).FirstOrDefaultAsync(x => x.Id == bookingId);
+        if (booking is not null) await holds.TryExpire(booking);
         var reason = PendingReason(transfer, booking);
         if (reason is not null) throw new WorkflowConflict(ReasonText(reason));
         AddPayment(transfer, booking!, actor, note);
     }
 
-    private static string? PendingReason(BankTransfer transfer, Booking? booking)
+    private string? PendingReason(BankTransfer transfer, Booking? booking)
     {
         if (booking is null) return "BookingNotFound";
+        if (booking.HoldExpiredAtUtc.HasValue || BookingHolds.AwaitingPayment(booking) && booking.PaymentDueAtUtc <= clock.GetUtcNow().UtcDateTime) return "HoldExpired";
         if (booking.Status == BookingStates.Cancelled) return "BookingCancelled";
         var due = Math.Max(0, HotelWorkflow.Gross(booking) - HotelWorkflow.Paid(booking));
         if (due == 0) return "BookingSettled";
@@ -319,6 +322,7 @@ public sealed class BankTransferReconciliation(HotelDbContext db, HotelWorkflow 
         "AmbiguousBookingCode" => "Có nhiều mã booking khác nhau trong giao dịch. Cần đối soát để xác nhận booking nhận tiền.",
         "InvalidBookingCode" => "Giao dịch có mã booking không hợp lệ hoặc vượt giới hạn. Cần đối soát trước khi ghi tiền.",
         "BookingNotFound" => "Không tìm thấy booking.",
+        "HoldExpired" => BookingHolds.ExpiredMessage,
         "BookingCancelled" => "Booking đã hủy, cần kiểm tra hoàn tiền hoặc booking phù hợp.",
         "BookingSettled" => "Booking đã thanh toán đủ.",
         "AmountExceedsDue" => "Số tiền vượt số còn phải thu. Không tự phân bổ một phần hoặc ghi vượt dư nợ.",

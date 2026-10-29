@@ -12,11 +12,12 @@ using Microsoft.EntityFrameworkCore;
 namespace HotelManagementAPI.Controllers;
 
 [ApiController, Route("api/[controller]"), Authorize]
-public sealed class BookingsController(HotelDbContext db, TimeProvider clock, HotelWorkflow workflow) : ControllerBase
+public sealed class BookingsController(HotelDbContext db, TimeProvider clock, HotelWorkflow workflow, BookingHolds holds) : ControllerBase
 {
     [HttpGet, Authorize(Roles = Roles.Staff)]
     public async Task<IActionResult> List([FromQuery] BookingQuery query)
     {
+        await holds.Reap();
         if (!string.IsNullOrWhiteSpace(query.Status) &&
             query.Status is not (BookingStates.Reserved or BookingStates.CheckedIn or
                 BookingStates.CheckedOut or BookingStates.Cancelled))
@@ -78,8 +79,7 @@ public sealed class BookingsController(HotelDbContext db, TimeProvider clock, Ho
             .Where(x => x.Capacity >= query.GuestCount && x.Status != RoomStatus.Maintenance &&
                 (x.Status == RoomStatus.Available || (x.Status == RoomStatus.Cleaning && start > today) ||
                  db.Bookings.Any(b => b.RoomId == x.Id && b.Status == BookingStates.CheckedIn)) &&
-                !db.Bookings.Any(b => b.RoomId == x.Id &&
-                    (b.Status == BookingStates.Reserved || b.Status == BookingStates.CheckedIn) &&
+                !BookingHolds.Blocking(db, clock.GetUtcNow().UtcDateTime).Any(b => b.RoomId == x.Id &&
                     (b.Status == BookingStates.CheckedIn && b.CheckOutDate <= today ||
                      b.CheckInDate < end && start < b.CheckOutDate)))
             .OrderBy(x => x.RoomNumber).ToListAsync();
@@ -107,8 +107,7 @@ public sealed class BookingsController(HotelDbContext db, TimeProvider clock, Ho
                 (room.Status == RoomStatus.Occupied &&
                  !await db.Bookings.AnyAsync(x => x.RoomId == room.Id && x.Status == BookingStates.CheckedIn)))
                 return Conflict(new { message = "Phòng không khả dụng." });
-            if (await db.Bookings.AnyAsync(x => x.RoomId == room.Id &&
-                (x.Status == BookingStates.Reserved || x.Status == BookingStates.CheckedIn) &&
+            if (await BookingHolds.Blocking(db, clock.GetUtcNow().UtcDateTime).AnyAsync(x => x.RoomId == room.Id &&
                 (x.Status == BookingStates.CheckedIn && x.CheckOutDate <= today ||
                  x.CheckInDate < end && start < x.CheckOutDate)))
                 return Conflict(new { message = "Phòng đã được đặt hoặc khách hiện tại chưa trả phòng." });
@@ -155,8 +154,7 @@ public sealed class BookingsController(HotelDbContext db, TimeProvider clock, Ho
                 return Conflict(new { message = "Phòng không khả dụng." });
             if (request.GuestCount > room.Capacity)
                 return BadRequest(new { message = "Số khách vượt quá sức chứa của phòng." });
-            if (await db.Bookings.AnyAsync(x => x.RoomId == room.Id &&
-                (x.Status == BookingStates.Reserved || x.Status == BookingStates.CheckedIn) &&
+            if (await BookingHolds.Blocking(db, clock.GetUtcNow().UtcDateTime).AnyAsync(x => x.RoomId == room.Id &&
                 (x.Status == BookingStates.CheckedIn && x.CheckOutDate <= today ||
                  x.CheckInDate < end && start < x.CheckOutDate)))
                 return Conflict(new { message = "Phòng đã được đặt hoặc khách hiện tại chưa trả phòng." });
@@ -170,6 +168,7 @@ public sealed class BookingsController(HotelDbContext db, TimeProvider clock, Ho
             var booking = new Booking
             {
                 Customer = account.Customer, RoomId = room.Id,
+                PaymentDueAtUtc = total > 0 ? clock.GetUtcNow().UtcDateTime.AddMinutes(BookingHolds.Minutes) : null,
                 GuestCount = request.GuestCount, CheckInDate = start, CheckOutDate = end,
                 Note = request.Note?.Trim(),
                 Detail = new BookingDetail
@@ -183,7 +182,8 @@ public sealed class BookingsController(HotelDbContext db, TimeProvider clock, Ho
             return StatusCode(StatusCodes.Status201Created, new
             {
                 booking.Id, booking.Status, booking.GuestCount, room.RoomNumber,
-                booking.CheckInDate, booking.CheckOutDate, totalAmount = total
+                booking.CheckInDate, booking.CheckOutDate, totalAmount = total,
+                paymentDueAtUtc = BookingHolds.Utc(booking.PaymentDueAtUtc), serverTimeUtc = clock.GetUtcNow()
             });
         }
         catch (Exception ex) when (ApiSupport.Busy(ex) ||
@@ -199,6 +199,8 @@ public sealed class BookingsController(HotelDbContext db, TimeProvider clock, Ho
             await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             var booking = await ApiSupport.FullBookings(db).FirstOrDefaultAsync(x => x.Id == id);
             if (booking is null) return NotFound();
+            if (await holds.TryExpire(booking)) { await db.SaveChangesAsync(); await tx.CommitAsync(); return Conflict(new { message = BookingHolds.ExpiredMessage }); }
+            if (BookingHolds.AwaitingPayment(booking)) return Conflict(new { message = "Booking giữ chỗ cần được ghi nhận tiền cọc trước khi nhận phòng." });
             if (booking.Status != BookingStates.Reserved)
                 return Conflict(new { message = "Trạng thái booking không cho phép check-in." });
             var now = clock.GetLocalNow().DateTime;
