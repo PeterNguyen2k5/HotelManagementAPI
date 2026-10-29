@@ -356,3 +356,12 @@ Trang chủ (mục Liên hệ), trang khách hàng và trang thanh toán dùng c
 Thông tin hiện tại được chủ project cho phép công khai trong appsettings.json, mục HotelContact. Có thể thay bằng biến môi trường Render HotelContact__Phone, HotelContact__Email, HotelContact__FacebookUrl. Các trường này tách khỏi CustomerEmail:Smtp và không đọc thông tin cá nhân từ hồ sơ khách. Đường dẫn Facebook chỉ nhận HTTPS đúng host Facebook; số gọi và email được chuẩn hóa. Cấu hình trống hoặc không hợp lệ không tạo nút giả; lỗi tải có nút thử lại.
 
 Các trường HotelContact được lưu trong gói sao lưu đầy đủ và nạp lại khi phục hồi. Kiểm thử: node tests/run-hotel-contact.mjs và node tests/run-full-backup.mjs. Bộ UI kiểm tra desktop/mobile, liên kết chính xác, tình huống API lỗi và không nhúng URL chạy JavaScript; không thực hiện cuộc gọi, gửi mail hoặc gửi tin Facebook.
+
+
+### Số khách theo sức chứa phòng
+
+Bộ chọn khách trên website lấy giới hạn từ GET /api/Bookings/guest-options, dựa trên sức chứa lớn nhất trong danh mục phòng (giới hạn hợp lệ 1–100 khách/phòng). Có phòng 20 khách thì chọn được từ 1 đến 20, không còn cố định 4 khách. Đây là sức chứa danh mục; tình trạng trống vẫn được kiểm tra theo ngày và số khách qua available-rooms. Khi danh mục chưa có phòng, bộ chọn dùng mức tối thiểu 1 khách.
+
+Mỗi lần tìm phòng, website cập nhật lại giới hạn và giữ nguyên số khách đã chọn. Nếu quản trị giảm sức chứa xuống dưới số khách đang chọn, giao diện yêu cầu chọn lại thay vì tự giảm nhóm 20 người thành ít người hơn. Lỗi tải giới hạn có thông báo và nút thử lại. API tạo booking vẫn kiểm tra số khách với sức chứa từng phòng. Không đổi sức chứa phòng hoặc booking hiện có khi triển khai tính năng.
+
+Kiểm thử: node tests/run-guest-capacity.mjs. Có thể bật Edge với HOTEL_PLAYWRIGHT_MODULE và HOTEL_BROWSER_PATH. Bộ này kiểm tra nhóm 5–20 người, giới hạn 100, phòng nhỏ bị loại, gửi vượt sức chứa bị từ chối, desktop/mobile, cập nhật danh mục, lỗi mạng/thử lại và luồng tạo booking đủ 20 khách trên database riêng.
