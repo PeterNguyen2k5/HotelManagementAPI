@@ -83,6 +83,8 @@ public sealed class BookingsController(HotelDbContext db, TimeProvider clock, Ho
         var start = query.CheckInDate!.Value.Date;
         var end = query.CheckOutDate!.Value.Date;
         var today = clock.GetLocalNow().Date;
+        if (start < today)
+            return BadRequest(new { message = "Ngày nhận phòng không thể ở trong quá khứ." });
         var rooms = await db.Rooms.AsNoTracking().Include(x => x.RoomType)
             .Where(x => x.Capacity >= query.GuestCount && x.Status != RoomStatus.Maintenance &&
                 (x.Status == RoomStatus.Available || (x.Status == RoomStatus.Cleaning && start > today) ||

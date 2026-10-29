@@ -365,3 +365,8 @@ Bộ chọn khách trên website lấy giới hạn từ GET /api/Bookings/guest
 Mỗi lần tìm phòng, website cập nhật lại giới hạn và giữ nguyên số khách đã chọn. Nếu quản trị giảm sức chứa xuống dưới số khách đang chọn, giao diện yêu cầu chọn lại thay vì tự giảm nhóm 20 người thành ít người hơn. Lỗi tải giới hạn có thông báo và nút thử lại. API tạo booking vẫn kiểm tra số khách với sức chứa từng phòng. Không đổi sức chứa phòng hoặc booking hiện có khi triển khai tính năng.
 
 Kiểm thử: node tests/run-guest-capacity.mjs. Có thể bật Edge với HOTEL_PLAYWRIGHT_MODULE và HOTEL_BROWSER_PATH. Bộ này kiểm tra nhóm 5–20 người, giới hạn 100, phòng nhỏ bị loại, gửi vượt sức chứa bị từ chối, desktop/mobile, cập nhật danh mục, lỗi mạng/thử lại và luồng tạo booking đủ 20 khách trên database riêng.
+
+
+API GET /api/Bookings/available-rooms từ chối ngày nhận phòng trước hôm nay của khách sạn bằng HTTP 400 với thông báo Ngày nhận phòng không thể ở trong quá khứ. Ngày được xác định bằng TimeProvider và Hotel:TimeZone, thống nhất với API tạo booking và giao diện tìm phòng. Ngày nhận hôm nay và trong tương lai vẫn được xử lý bình thường; các bộ lọc lịch sử booking không bị thay đổi. Không cần migration dữ liệu.
+
+Kiểm thử riêng: node tests/run-availability-dates.mjs. Dùng server/database tạm với múi giờ Việt Nam, UTC+14 và UTC-12; kiểm tra ngày quá khứ, khoảng bắt đầu hôm qua nhưng kết thúc tương lai, ngày hôm nay/tương lai, khách chưa đăng nhập/khách hàng/nhân viên, đối chiếu chặn tạo booking và xác nhận không phát sinh booking hoặc khoản thu.
