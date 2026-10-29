@@ -252,6 +252,9 @@ using (var scope = app.Services.CreateScope())
     if (legacy.Count > 0) await db.SaveChangesAsync();
 }
 
+app.UseMiddleware<SecurityHeadersMiddleware>();
+// Keep headers around short-circuited health endpoints as well as static files and API errors.
+app.UseRouting();
 app.UseMiddleware<RequestMonitoringMiddleware>();
 app.UseMiddleware<ApiErrorMiddleware>();
 
