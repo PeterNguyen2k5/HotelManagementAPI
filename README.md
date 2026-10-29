@@ -2,6 +2,34 @@
 
 Một project ASP.NET Core 8 chứa cả API và giao diện quản lý khách sạn. Dữ liệu lưu trong SQLite tại `hotel.db` cạnh file project; ứng dụng tự tạo cơ sở dữ liệu và áp dụng EF Core migrations khi chạy lần đầu. Không cần SQL Server hoặc chạy frontend riêng.
 
+## Sửa ngân hàng webhook, hoàn tiền và tên dịch vụ — 29/10/2026
+
+- Webhook phải có `gateway` được nhận diện và trùng ngân hàng đã cấu hình, cùng đúng tài khoản nhận. So sánh theo bảng alias rõ ràng (MB/MBBank/970422, VCB/Vietcombank/970436...), bỏ qua khác biệt hoa/thường/khoảng trắng. Không dùng tên hiển thị Admin tự nhập để xác nhận ngân hàng. Gateway thiếu, không biết hoặc khác ngân hàng trả **400** trước khi lưu receipt/ghi tiền; ID bị từ chối vẫn dùng được khi nhận payload hợp lệ sau đó. Tên trường theo [SePay webhook](https://developer.sepay.vn/vi/sepay-webhooks/tich-hop-webhook); mã/BIN đối chiếu [danh sách VietQR](https://api.vietqr.io/v2/banks). Ngân hàng chưa có alias phải được bổ sung và kiểm thử trước khi bật tự nhận webhook.
+- Refund/Transfer dùng định danh riêng theo ngân hàng, tài khoản khách sạn chi hoàn, mã giao dịch và chiều tiền ra. Cùng chứng từ/cùng booking/số tiền trả lại khoản đã ghi, kể cả UUID mới; khác booking/số tiền trả **409**. Có unique index và transaction, không gộp với định danh tiền vào. Form lễ tân cho xem/chỉnh ngân hàng và tài khoản **chi**, không phải tài khoản khách nhận hoàn. API nhận `bankId`, `bankAccountNumber`; nếu không gửi thì dùng tài khoản cấu hình hiện tại để tương thích client cũ. Vẫn cần cấu hình ngân hàng trước khi ghi chuyển khoản mới. UUID alias được lưu để retry sau lỗi mạng/đổi cấu hình vẫn đọc lại kết quả cũ đúng payload.
+- Các khoản Refund/Transfer cũ chưa có định danh tài khoản không bị tự gắn vào ngân hàng hiện tại. Nếu trùng mã tham chiếu cũ, yêu cầu mới bị chặn **409** để đối soát; retry UUID gốc vẫn đọc lại khoản đã ghi. Không tự sửa/gộp tiền đã bị nhập trùng trước bản sửa.
+- Lượt dịch vụ mới lưu `ServiceName` cùng giá/số lượng. Lịch sử nhân viên, portal khách, hóa đơn và báo cáo dùng tên đã chốt. Đổi danh mục chỉ ảnh hưởng lượt sử dụng mới; hóa đơn đã phát hành được giữ nguyên.
+- Migration `PreserveServiceUsageName` bổ sung cột, ưu tiên tên gốc trong ServiceUsageOperations cho dữ liệu cũ. Với lượt cũ không còn snapshot, chỉ có thể chốt tên danh mục đang có lúc nâng cấp; không tự suy đoán tên đã mất. Không thay tiền/số lượng hoặc viết lại hóa đơn cũ. Các hóa đơn sai tên đã phát hành trước sửa cần xem xét theo chứng từ riêng.
+
+Sao lưu trước khi nâng cấp dữ liệu thật. Trong Visual Studio: **Shift+F5 → Build → F5** để dùng mã mới và áp dụng migration; sau đó tải lại giao diện. Không chỉ Ctrl+Shift+R vì có thay đổi API/schema.
+
+Kiểm thử trên dữ liệu tạm:
+
+```powershell
+dotnet build
+node tests/run-financial-history-fixes.mjs
+node tests/run-project-checks.mjs
+node tests/run-transfer-dedup.mjs
+node tests/run-payment-uuid.mjs
+node tests/run-service-usage-retry.mjs
+node tests/run-ambiguous-bank-codes.mjs
+node tests/run-bank-reconciliation.mjs
+node tests/run-full-backup.mjs
+```
+
+Đặt `HOTEL_FINANCIAL_HISTORY_UI=1` cùng đường dẫn Playwright/Edge để thử form hoàn mới, nhập lại cùng chứng từ từ form khác và hóa đơn giữ tên dịch vụ cũ. Các fixture webhook hợp lệ của test hiện cung cấp gateway thật theo ngân hàng thử; các ca gateway sai/thiếu được kiểm tra riêng, không nới validation để phục vụ fixture cũ. Không dùng tài khoản, dữ liệu, SMTP hoặc giao dịch SePay thật trong harness.
+
+Kết quả bản sửa `ThreeFixesVerified`: build 0 lỗi/cảnh báo; EF không phát hiện model chưa có migration; **105 kiểm tra mới** cùng Edge đạt. Hồi quy đạt **1.625** kiểm tra tổng quát, **235** chống trùng chuyển vào, **116** UUID thanh toán, **74** retry dịch vụ, **170** mã booking mơ hồ, **116** đối soát và **72** sao lưu/phục hồi: tổng **2.513 kiểm tra** gồm bộ mới. Đã chạy thêm Edge thanh toán/QR/cọc/tiền mặt với gateway hợp lệ. Migration thử từ schema chưa có ServiceName giữ tổng tiền/số lượt cũ, khôi phục tên gốc từ thao tác và không sửa snapshot hóa đơn. Không dừng tiến trình Visual Studio hoặc chỉnh dữ liệu thật; các thay đổi này hiện ở máy local, chưa commit/push mới.
+
 Triển khai Docker: xem [deploy/README.md](deploy/README.md). Có Dockerfile chạy non-root, Compose/Caddy HTTPS, volume dữ liệu, múi giờ khách sạn cố định, health check và Prometheus/alert rules. Ngoài Development mặc định chuyển nghiệp vụ HTTP sang HTTPS; các harness kiểm thử local tắt redirect rõ ràng trên server tạm. Log ứng dụng dùng JSON với timestamp UTC và trace ID; ngày nghiệp vụ mặc định theo `Asia/Ho_Chi_Minh`.
 
 ## Cập nhật bảo mật dependency — 28/10/2026

@@ -54,6 +54,39 @@ public sealed class BankTransferReconciliation(HotelDbContext db, HotelWorkflow 
         return payment;
     }
 
+    public async Task<BookingPayment> RecordRefundTransfer(Booking booking, PaymentCreate request, BankConfigSave bank, string actor)
+    {
+        // Refunds may leave a different hotel account. Snapshot the selected source, not the guest's destination.
+        var sourceBank = BankIdentity.Canonical(request.BankId ?? bank.BankId)
+            ?? throw new WorkflowConflict("Không nhận diện được ngân hàng chi hoàn tiền. Hãy chọn mã ngân hàng hợp lệ.");
+        var sourceAccount = (request.BankAccountNumber ?? bank.AccountNumber).Trim();
+        if (sourceAccount.Length == 0) throw new WorkflowConflict("Hãy nhập tài khoản của khách sạn đã chi hoàn tiền.");
+        var reference = NormalizeReference(request.Reference);
+        var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
+            JsonSerializer.Serialize(new[] { sourceBank, sourceAccount, reference, "out" }))));
+        var existing = await db.BookingPayments.FirstOrDefaultAsync(x => x.BankReferenceKey == key);
+        if (existing is not null)
+        {
+            if (existing.Type != "Refund" || existing.Method != "Transfer" || existing.BookingId != booking.Id || existing.Amount != request.Amount)
+                throw new WorkflowConflict("Mã chuyển khoản hoàn tiền đã ghi cho booking hoặc số tiền khác. Hãy đối soát chứng từ.");
+            return RememberOperation(booking.Id, request, existing);
+        }
+        // Old refunds have no reliable source-account snapshot. Never guess a scope or alter old money.
+        var legacyReferences = await db.BookingPayments.Where(x => x.Type == "Refund" && x.Method == "Transfer" && x.BankReferenceKey == null)
+            .Select(x => x.Reference).ToListAsync();
+        if (legacyReferences.Any(x => NormalizeReference(x) == reference))
+            throw new WorkflowConflict("Có khoản hoàn tiền cũ cùng mã tham chiếu chưa có định danh tài khoản. Hãy đối soát lịch sử; không ghi thêm bằng mã này.");
+        if (request.Amount > Math.Max(0, HotelWorkflow.Paid(booking) - HotelWorkflow.Gross(booking)))
+            throw new WorkflowConflict("Số hoàn vượt khoản cần hoàn. Hãy cập nhật hoặc hủy booking trước.");
+        var payment = new BookingPayment
+        {
+            BookingId = booking.Id, RequestId = PaymentRequestIds.Normalize(request.RequestId), Type = "Refund", Method = "Transfer",
+            Amount = request.Amount, Reference = request.Reference, BankReferenceKey = key, RecordedBy = actor, CreatedAt = workflow.Now
+        };
+        db.BookingPayments.Add(payment);
+        return RememberOperation(booking.Id, request, payment);
+    }
+
     public async Task<BookingPayment> RecordManualTransfer(Booking booking, PaymentCreate request, BankConfigSave bank, string actor)
     {
         if (request.BankId is not null && !request.BankId.Trim().Equals(bank.BankId.Trim(), StringComparison.OrdinalIgnoreCase) ||

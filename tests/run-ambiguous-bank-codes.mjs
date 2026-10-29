@@ -25,7 +25,7 @@ async function api(method,route,body,status=200,token=clerk??admin,headers={}){
  assert.ok((Array.isArray(status)?status:[status]).includes(response.status),`${method} ${route}: ${response.status} ${JSON.stringify(data)}`);checks++;
  return {status:response.status,data};
 }
-const receipt=fields=>({id:++receiptId,transferType:'in',accountNumber:bank.accountNumber,transferAmount:123,referenceCode:'AMB-REF-'+receiptId,...fields});
+const receipt=fields=>({id:++receiptId,gateway:'MBBank',transferType:'in',accountNumber:bank.accountNumber,transferAmount:123,referenceCode:'AMB-REF-'+receiptId,...fields});
 const deliver=(body,status=200)=>api('POST','/api/BookingOperations/sepay-webhook',body,status,null,{Authorization:'Apikey '+key});
 const details=async id=>(await api('GET','/api/BankTransfers/'+id)).data;
 const payments=async id=>(await api('GET',`/api/BookingOperations/${id}/payments`)).data;

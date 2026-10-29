@@ -96,7 +96,7 @@ public sealed class ServicesController(HotelDbContext db) : ControllerBase
             var usage = new ServiceUsage
             {
                 BookingId = booking.Id, ServiceId = service.Id,
-                Quantity = request.Quantity, UnitPrice = service.Price, Total = total
+                Quantity = request.Quantity, UnitPrice = service.Price, Total = total, ServiceName = service.Name
             };
             db.ServiceUsages.Add(usage);
             db.ServiceUsageOperations.Add(new ServiceUsageOperation
@@ -118,7 +118,7 @@ public sealed class ServicesController(HotelDbContext db) : ControllerBase
     {
         var rows = await db.ServiceUsages.AsNoTracking().Include(x => x.Service)
             .Where(x => x.BookingId == bookingId).OrderBy(x => x.Id).ToListAsync();
-        return Ok(rows.Select(x => UsageView(x, x.Service.Name)));
+        return Ok(rows.Select(x => UsageView(x, x.ServiceName)));
     }
 
     [HttpDelete("usage/{id:int}")]

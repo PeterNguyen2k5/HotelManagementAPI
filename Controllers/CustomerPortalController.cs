@@ -82,7 +82,7 @@ public sealed class CustomerPortalController(HotelDbContext db) : ControllerBase
             contact = new { booking.Customer.FullName, booking.Customer.Phone, booking.Customer.Email },
             balance = HotelWorkflow.Balance(booking),
             services = booking.ServiceUsages.OrderBy(x => x.Id).Select(x => new
-            { x.Id, name = x.Service.Name, x.Quantity, x.UnitPrice, x.Total, x.UsedAt }),
+            { x.Id, name = x.ServiceName, x.Quantity, x.UnitPrice, x.Total, x.UsedAt }),
             payments = booking.Payments.OrderByDescending(x => x.Id).Select(x => new
             { x.Id, x.Type, x.Method, x.Amount, x.Reference, x.CreatedAt }),
             requests,

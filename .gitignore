@@ -1,6 +1,6 @@
 bin/
 obj/
-!hotel.db
+hotel.db
 hotel.db-shm
 hotel.db-wal
 jwt.key
@@ -8,6 +8,7 @@ data-protection-keys/
 .vs/
 *.user
 *.suo
+*.db
 *.db-shm
 *.db-wal
 *.key

@@ -27,7 +27,7 @@ async function api(method,route,body,status=200,token=admin,headers={}){
  return {status:response.status,data:response.status===204?null:await response.json()};
 }
 const receive=(body,status=200)=>api('POST',webhookPath,body,status,null,{Authorization:'Apikey '+key});
-const payload=(id,amount=10,content='Chuyen tien khong co ma')=>({id,transferType:'in',accountNumber:bank.accountNumber,transferAmount:amount,content,referenceCode:'REF-'+id,gateway:'Fixture bank',transactionDate:'2026-10-28 10:00:00'});
+const payload=(id,amount=10,content='Chuyen tien khong co ma')=>({id,transferType:'in',accountNumber:bank.accountNumber,transferAmount:amount,content,referenceCode:'REF-'+id,gateway:'MBBank',transactionDate:'2026-10-28 10:00:00'});
 const list=async(query='',token=clerk)=>(await api('GET','/api/BankTransfers'+query,undefined,200,token)).data;
 const detail=async(id)=>(await api('GET','/api/BankTransfers/'+id,undefined,200,clerk)).data;
 const payments=async(id)=>(await api('GET',`/api/BookingOperations/${id}/payments`,undefined,200,clerk)).data;

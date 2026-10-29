@@ -655,6 +655,11 @@ namespace HotelManagementAPI.Migrations
                     b.Property<int>("ServiceId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ServiceName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("Total")
                         .HasColumnType("INTEGER");
 

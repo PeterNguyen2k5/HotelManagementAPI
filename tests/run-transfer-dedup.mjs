@@ -28,7 +28,7 @@ async function api(method,route,body,status=200,token=clerk??admin,headers={}){
 const payments=async id=>(await api('GET',`/api/BookingOperations/${id}/payments`)).data;
 const details=async id=>(await api('GET','/api/BankTransfers/'+id)).data;
 const manual=(bookingId,reference,amount=25000,status=200,extra={})=>api('POST',`/api/BookingOperations/${bookingId}/payments`,{requestId:randomUUID(),type:'Deposit',method:'Transfer',amount,reference,...extra},status);
-const receipt=(bookingId,referenceCode,amount=25000,extra={})=>({id:++receiptId,accountNumber:bank.accountNumber,transferType:'in',transferAmount:amount,content:bookingId?'ANNHIEN '+bookingId:'Khong co ma',referenceCode,gateway:bank.bankName,...extra});
+const receipt=(bookingId,referenceCode,amount=25000,extra={})=>({id:++receiptId,accountNumber:bank.accountNumber,transferType:'in',transferAmount:amount,content:bookingId?'ANNHIEN '+bookingId:'Khong co ma',referenceCode,gateway:'MBBank',...extra});
 const deliver=(body,status=200)=>api('POST','/api/BookingOperations/sepay-webhook',body,status,null,{Authorization:'Apikey '+secret});
 const match=(id,bookingId,extra={},status=200)=>api('POST',`/api/BankTransfers/${id}/match`,{bookingId,note:'Đã đối chiếu chứng từ gốc trên ngân hàng.',...extra},status);
 const configure=(value=bank)=>api('POST','/api/BookingOperations/bank-config',value,200,admin);
@@ -105,7 +105,7 @@ try{
  await manual(scopedB.id,'STALE-ACCOUNT',25000,409,{bankId:bank.bankId,bankAccountNumber:bank.accountNumber});
  await manual(scopedB.id,'SHARED-REF');await deliver(receipt(scopedB.id,'SHARED-REF',25000,{accountNumber:account2.accountNumber}));
  const bank2={...account2,bankId:'VCB',bankName:'Different fixture bank'};await configure(bank2);
- await manual(scopedC.id,'SHARED-REF');await deliver(receipt(scopedC.id,'SHARED-REF',25000,{accountNumber:bank2.accountNumber,gateway:bank2.bankName}));
+ await manual(scopedC.id,'SHARED-REF');await deliver(receipt(scopedC.id,'SHARED-REF',25000,{accountNumber:bank2.accountNumber,gateway:'Vietcombank'}));
  for(const b of [scopedA,scopedB,scopedC])assert.equal((await payments(b.id)).balance.paid,25000);
  await configure();await deliver(receipt(scopedA.id,'SHARED-REF'));
 

@@ -76,7 +76,7 @@ public sealed class HotelWorkflow(HotelDbContext db, TimeProvider clock)
         if(rooms.Count==0) rooms.Add(new {b.Room.RoomNumber,StartDate=b.CheckInDate,EndDate=b.CheckOutDate,Nights=b.Detail.Nights,UnitPrice=b.Detail.RoomPricePerNight,Total=b.Detail.RoomTotal});
         var snapshot=new {number,bookingId=b.Id,customerName=b.Customer.FullName,phone=b.Customer.Phone,
             checkIn=b.ActualCheckInAt,checkOut=b.ActualCheckOutAt,rooms,
-            services=b.ServiceUsages.Select(x=>new {name=x.Service.Name,x.Quantity,x.UnitPrice,x.Total}),
+            services=b.ServiceUsages.Select(x=>new {name=x.ServiceName,x.Quantity,x.UnitPrice,x.Total}),
             roomTotal=b.Detail.RoomTotal,serviceTotal=b.ServiceUsages.Sum(x=>x.Total),total=Gross(b)};
         db.BookingInvoices.Add(new BookingInvoice { BookingId=b.Id,Number=number,IssuedAt=Now,
             Snapshot=JsonSerializer.Serialize(snapshot,new JsonSerializerOptions(JsonSerializerDefaults.Web)) });
