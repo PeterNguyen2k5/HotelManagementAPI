@@ -208,6 +208,12 @@ action=async function(name,id){
  if(name==='backup-create'){
   await api('/api/Administration/backups',{method:'POST'});note('Đã tạo bản sao lưu.');await render();return;
  }
+ if(name==='demo-rooms'){
+  const button=document.querySelector('[data-act="demo-rooms"]');if(button)button.disabled=true;
+  try{const result=await api('/api/Administration/demo-rooms',{method:'POST'});state.page=1;note(result.message);await render();}
+  finally{if(button?.isConnected)button.disabled=false;}
+  return;
+ }
  if(name==='backup-download'){
   let r;
   try{r=await fetch('/api/Administration/backups/'+id+'/download',{headers:{Authorization:'Bearer '+state.token}})}
