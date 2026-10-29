@@ -131,3 +131,6 @@ Tham khảo chính thức: [Microsoft — proxy/forwarded headers](https://learn
 
 
 Kênh liên hệ khách sạn: cấu hình HotelContact__Phone, HotelContact__Email và HotelContact__FacebookUrl trên Render hoặc biến môi trường container để thay thông tin công khai. Nếu không ghi đè, ứng dụng dùng HotelContact trong appsettings.json. Không dùng mật khẩu SMTP hoặc SePay làm giá trị các trường này. GET /api/HotelContact chỉ trả thông tin công khai đã kiểm tra định dạng. Thông tin được đưa vào recovery-settings.json của gói sao lưu để phục hồi cùng ứng dụng.
+
+
+Ứng dụng tự gắn CSP, chống iframe và nosniff. HSTS (180 ngày, không preload/subdomain) được phát trên HTTPS production sau bước xử lý ForwardedHeaders; proxy cần cung cấp scheme chính xác theo cấu hình tin cậy hiện có. Kiểm tra bằng curl -I https://TEN-MIEN/hotel.html và chạy node tests/run-security-headers.mjs trước khi cập nhật cấu hình Swagger hoặc nguồn script. CSP cho phép ảnh HTTPS để QR hoạt động; không cần thêm domain ngoài vào script-src.

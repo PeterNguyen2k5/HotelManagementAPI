@@ -370,3 +370,16 @@ Kiểm thử: node tests/run-guest-capacity.mjs. Có thể bật Edge với HOTE
 API GET /api/Bookings/available-rooms từ chối ngày nhận phòng trước hôm nay của khách sạn bằng HTTP 400 với thông báo Ngày nhận phòng không thể ở trong quá khứ. Ngày được xác định bằng TimeProvider và Hotel:TimeZone, thống nhất với API tạo booking và giao diện tìm phòng. Ngày nhận hôm nay và trong tương lai vẫn được xử lý bình thường; các bộ lọc lịch sử booking không bị thay đổi. Không cần migration dữ liệu.
 
 Kiểm thử riêng: node tests/run-availability-dates.mjs. Dùng server/database tạm với múi giờ Việt Nam, UTC+14 và UTC-12; kiểm tra ngày quá khứ, khoảng bắt đầu hôm qua nhưng kết thúc tương lai, ngày hôm nay/tương lai, khách chưa đăng nhập/khách hàng/nhân viên, đối chiếu chặn tạo booking và xác nhận không phát sinh booking hoặc khoản thu.
+
+
+### Header bảo vệ trình duyệt
+
+SecurityHeadersMiddleware bổ sung Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff và Referrer-Policy: strict-origin-when-cross-origin cho trang HTML, tài nguyên tĩnh, API và phản hồi lỗi. Middleware chạy sau ForwardedHeaders và trước UseRouting để các health endpoint short-circuit cũng có header.
+
+HSTS dùng max-age=15552000 (180 ngày), chỉ khi scheme đã xử lý là HTTPS, môi trường không phải Development và hostname không phải localhost/loopback. Không thêm preload hoặc includeSubDomains. Không phát HSTS trên HTTP để tránh dùng sai trong môi trường local; không thay cơ chế proxy/redirect của bản cloud.
+
+CSP của trang ứng dụng chỉ cho chạy script cùng origin, không bật unsafe-inline/unsafe-eval cho JavaScript; chặn inline handler, object, base URL và nhúng iframe. Font lấy cùng origin/data; API kết nối cùng origin. Ảnh HTTPS/data/blob được phép để giữ VietQR và QR tùy chỉnh. style-src cho unsafe-inline vì các giao diện hiện dùng style attributes; đây là ngoại lệ cho CSS, không áp dụng cho JavaScript. Development cho WebSocket phục vụ công cụ phát triển.
+
+Swagger dùng ba hash SHA-256 đã pin cho helper/initializer hiện có của Swashbuckle 6.6.2 ở hai bản local/cloud, không mở unsafe-inline cho script. Khi đổi phiên bản Swashbuckle hoặc cấu hình Swagger UI, cần chạy lại node tests/run-security-headers.mjs và xác minh/cập nhật hash nếu nội dung initializer thay đổi. Tham khảo: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP và https://learn.microsoft.com/aspnet/core/host-and-deploy/proxy-load-balancer.
+
+Kiểm thử: node tests/run-security-headers.mjs. Có thể bật Edge bằng HOTEL_PLAYWRIGHT_MODULE và HOTEL_BROWSER_PATH. Bộ này xác nhận header ở HEAD/304, health, lỗi 400/401/403/404/405/429/500, HSTS qua proxy HTTPS và loại trừ HTTP/localhost; thử chèn script/nhúng iframe và kiểm tra UI, font, ảnh, 3D, Swagger cùng VietQR giả lập. Không gọi ngân hàng hoặc SMTP thật.
