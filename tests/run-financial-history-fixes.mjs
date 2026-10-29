@@ -104,7 +104,7 @@ try{
   const browser=await chromium.launch({headless:true,...(process.env.HOTEL_BROWSER_PATH?{executablePath:process.env.HOTEL_BROWSER_PATH}:{})});try{
    const ui=await refundable(),page=await browser.newPage();page.setDefaultTimeout(15000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort('blockedbyclient'));
-   await page.goto(base);await page.locator('#username').fill('admin');await page.locator('#password').fill(testAdminPassword);await page.locator('#login-form [type="submit"]').click();await expect(page.locator('.dashboard-head')).toBeVisible();
+   await page.goto(base+'/index.html');await page.locator('#username').fill('admin');await page.locator('#password').fill(testAdminPassword);await page.locator('#login-form [type="submit"]').click();await expect(page.locator('.dashboard-head')).toBeVisible();
    for(let i=0;i<2;i++){
     await page.evaluate(id=>action('booking-pay',id),ui.id);await expect(page.locator('#f-bankId')).toBeHidden();await page.locator('#f-method').selectOption('Transfer');
     await expect(page.locator('#f-bankId')).toBeVisible();await expect(page.locator('#f-bankAccountNumber')).toHaveValue(bank.accountNumber);
