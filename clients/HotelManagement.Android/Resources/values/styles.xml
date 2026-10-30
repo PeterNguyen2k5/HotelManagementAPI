@@ -1,2 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources><style name="HotelTheme" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorAccent">#B28436</item><item name="android:windowLightStatusBar">false</item><item name="android:windowActionModeOverlay">true</item><item name="android:windowBackground">#F5F6F2</item></style></resources>
+<resources>
+  <style name="HotelTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+    <item name="android:fontFamily">sans</item>
+    <item name="android:colorAccent">#B28436</item>
+    <item name="android:windowLightStatusBar">true</item>
+    <item name="android:statusBarColor">#F7F5EF</item>
+    <item name="android:navigationBarColor">#FFFFFF</item>
+    <item name="android:windowLightNavigationBar">true</item>
+    <item name="android:windowActionModeOverlay">true</item>
+    <item name="android:windowBackground">#F7F5EF</item>
+    <item name="android:windowSoftInputMode">adjustResize</item>
+    <item name="android:windowNoTitle">true</item>
+  </style>
+</resources>

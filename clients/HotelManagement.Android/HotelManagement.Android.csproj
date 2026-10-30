@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net9.0-android</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
     <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion><ApplicationId>vn.annhien.hotel</ApplicationId><ApplicationTitle>An Nhiên</ApplicationTitle>
-    <ApplicationVersion>1</ApplicationVersion><ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
+    <ApplicationVersion>2</ApplicationVersion><ApplicationDisplayVersion>1.1.0</ApplicationDisplayVersion>
     <AndroidPackageFormats>apk</AndroidPackageFormats><RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
     <PublishTrimmed>false</PublishTrimmed><RunAOTCompilation>false</RunAOTCompilation><AndroidUseAssemblyStore>true</AndroidUseAssemblyStore>
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
@@ -10,4 +10,5 @@
     <AndroidManifestPlaceholders Condition="'$(Configuration)' == 'Debug'">cleartext=true</AndroidManifestPlaceholders>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../HotelManagement.Client/HotelManagement.Client.csproj" /></ItemGroup>
+  <ItemGroup><AndroidMavenLibrary Include="com.caverock:androidsvg-aar" Version="1.4" /></ItemGroup>
 </Project>
