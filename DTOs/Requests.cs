@@ -23,6 +23,14 @@ public sealed class RoomTypeQuery : PageQuery
     public string? SortBy { get; set; }
 }
 
+public sealed class CustomerQuery
+{
+    public string? Keyword { get; set; }
+    public string? SortBy { get; set; }
+    [Range(1, int.MaxValue)] public int? PageNumber { get; set; }
+    [Range(1, 100)] public int? PageSize { get; set; }
+}
+
 public sealed class BookingQuery : PageQuery, IValidatableObject
 {
     [StringLength(200)] public string? CustomerKeyword { get; set; }

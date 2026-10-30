@@ -13,16 +13,34 @@ namespace HotelManagementAPI.Controllers;
 public sealed class CustomersController(HotelDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> List([FromQuery] string? keyword)
+    public async Task<IActionResult> List([FromQuery] CustomerQuery query)
     {
         var rows = db.Customers.AsNoTracking().AsQueryable();
-        if (!string.IsNullOrWhiteSpace(keyword))
+        if (!string.IsNullOrWhiteSpace(query.Keyword))
         {
-            var term = keyword.Trim();
+            var term = query.Keyword.Trim();
             rows = rows.Where(x => x.FullName.Contains(term) ||
                 (x.Phone != null && x.Phone.Contains(term)) ||
                 (x.IdentityCard != null && x.IdentityCard.Contains(term)));
         }
+
+        if (query.PageNumber.HasValue || query.PageSize.HasValue)
+        {
+            var count = await rows.CountAsync();
+            rows = query.SortBy?.ToLowerInvariant() switch
+            {
+                "name_desc" => rows.OrderByDescending(x => x.FullName).ThenBy(x => x.Id),
+                "name_asc" => rows.OrderBy(x => x.FullName).ThenBy(x => x.Id),
+                "id_desc" => rows.OrderByDescending(x => x.Id),
+                _ => rows.OrderBy(x => x.Id)
+            };
+            var page = query.PageNumber ?? 1;
+            var size = query.PageSize ?? 10;
+            var skip = (long)(page - 1) * size;
+            var items = skip >= count ? [] : await rows.Skip((int)skip).Take(size).ToListAsync();
+            return Ok(ApiSupport.Page(items, count, page, size));
+        }
+
         return Ok(await rows.OrderBy(x => x.Id).ToListAsync());
     }
 
