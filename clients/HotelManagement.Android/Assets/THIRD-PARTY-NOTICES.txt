@@ -1,0 +1,6 @@
+AndroidSVG 1.4
+SVG rendering library for Android
+https://github.com/BigBadaboom/androidsvg
+
+Licensed under the Apache License, Version 2.0.
+The license text is included in LICENSE-AndroidSVG.txt.

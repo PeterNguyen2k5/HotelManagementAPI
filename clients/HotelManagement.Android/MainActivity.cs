@@ -12,7 +12,7 @@ using AButton=Android.Widget.Button;
 using AUri=Android.Net.Uri;
 namespace HotelManagement.Android;
 
-[Activity(Label="An Nhiên",MainLauncher=true,Exported=true,Theme="@style/HotelTheme",ConfigurationChanges=global::Android.Content.PM.ConfigChanges.Orientation|global::Android.Content.PM.ConfigChanges.ScreenSize)]
+[Activity(Label="An Nhiên",MainLauncher=true,Exported=true,Theme="@style/HotelTheme",ScreenOrientation=global::Android.Content.PM.ScreenOrientation.SensorPortrait,ConfigurationChanges=global::Android.Content.PM.ConfigChanges.Orientation|global::Android.Content.PM.ConfigChanges.ScreenSize)]
 public sealed partial class MainActivity:Activity
 {
     private HotelApiClient api=null!;
@@ -21,11 +21,12 @@ public sealed partial class MainActivity:Activity
     private CancellationTokenSource screen=new();
     private int generation;private bool foreground;private Room? pendingRoom;
     private DateOnly checkIn,checkOut;private int guests=2;private int maxGuests=2;
-    private static readonly AColor Green=AColor.Rgb(20,57,47),Gold=AColor.Rgb(178,132,54),Paper=AColor.Rgb(245,246,242),Ink=AColor.Rgb(35,49,46);
+    private static readonly AColor Green=AColor.Rgb(18,55,45),Gold=AColor.Rgb(178,132,54),Paper=AColor.Rgb(247,245,239),Ink=AColor.Rgb(35,49,46),Muted=AColor.Rgb(112,128,120),Line=AColor.Rgb(225,230,222);
     private static readonly HttpClient images=new(){Timeout=TimeSpan.FromSeconds(20)};
     protected override void OnCreate(Bundle? state)
     {
         base.OnCreate(state);
+        Window?.SetSoftInputMode(SoftInput.AdjustResize);
         var url=HotelApiClient.ProductionUrl;
 #if DEBUG
         url=Intent?.GetStringExtra("api_url")??url;
@@ -43,18 +44,17 @@ public sealed partial class MainActivity:Activity
     private void Page(string title,string tab)
     {
         screen.Cancel();screen.Dispose();screen=new();generation++;
-        var root=new LinearLayout(this){Orientation=Orientation.Vertical};root.SetBackgroundColor(Paper);root.SetOnApplyWindowInsetsListener(new Insets());
-        var header=new LinearLayout(this){Orientation=Orientation.Vertical};header.SetPadding(Dp(20),Dp(16),Dp(20),Dp(14));header.SetBackgroundColor(Green);
-        var brand=Text("AN NHIÊN  ·  HOTEL & RESORT",12,true);brand.SetTextColor(Gold);header.AddView(brand);var heading=Text(title,25,true);heading.SetTextColor(AColor.White);header.AddView(heading);root.AddView(header);
-        message=Text("",13);message.Visibility=ViewStates.Gone;message.SetPadding(Dp(18),Dp(8),Dp(18),Dp(8));root.AddView(message);
-        var scroll=new ScrollView(this){FillViewport=true};content=new LinearLayout(this){Orientation=Orientation.Vertical};content.SetPadding(Dp(16),Dp(12),Dp(16),Dp(22));scroll.AddView(content);root.AddView(scroll,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent,0,1));
-        var nav=new LinearLayout(this){Orientation=Orientation.Horizontal};nav.SetBackgroundColor(AColor.White);
-        foreach(var item in new[]{("Phòng","rooms"),("Booking","bookings"),("Thông báo","notifications"),("Tài khoản","account")})
-        {
-            var b=new AButton(this){Text=item.Item1,TextSize=11};b.SetAllCaps(false);b.SetTextColor(item.Item2==tab?Gold:Green);b.SetBackgroundColor(AColor.White);
-            b.Click+=async(_,_)=>await Guard(item.Item2 switch{"rooms"=>SearchPage,"bookings"=>()=>MyBookings(),"notifications"=>NotificationsPage,_=>AccountPage});nav.AddView(b,new LinearLayout.LayoutParams(0,Dp(56),1));
-        }
-        root.AddView(nav);SetContentView(root);
+        var outer=new FrameLayout(this);outer.SetBackgroundColor(Paper);outer.SetOnApplyWindowInsetsListener(new Insets());
+        var root=new LinearLayout(this){Orientation=Orientation.Vertical};root.SetBackgroundColor(Paper);
+        var width=Math.Min(Resources?.DisplayMetrics?.WidthPixels??Dp(420),Dp(480));
+        outer.AddView(root,new FrameLayout.LayoutParams(width,-1,GravityFlags.CenterHorizontal));
+        root.AddView(BrandHeader());
+        message=Text("",13);message.Visibility=ViewStates.Gone;message.SetPadding(Dp(20),Dp(10),Dp(20),Dp(10));root.AddView(message);
+        var scroll=new ScrollView(this){FillViewport=true,VerticalScrollBarEnabled=false};
+        content=new LinearLayout(this){Orientation=Orientation.Vertical};content.SetPadding(Dp(20),Dp(4),Dp(20),Dp(24));
+        if(tab!="rooms"||title!="Kỳ nghỉ dành cho bạn")content.AddView(Heading(title,28));
+        scroll.AddView(content);root.AddView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        root.AddView(BottomNavigation(tab));SetContentView(outer);
     }
     private sealed class Insets:Java.Lang.Object,View.IOnApplyWindowInsetsListener
     {
@@ -69,22 +69,30 @@ public sealed partial class MainActivity:Activity
         }
     }
     private TextView Text(string text,int size=15,bool bold=false)
-    {var t=new TextView(this){Text=text,TextSize=size};t.SetTextColor(Ink);t.SetPadding(0,Dp(3),0,Dp(5));if(bold)t.SetTypeface(null,TypefaceStyle.Bold);return t;}
+    {var t=new TextView(this){Text=text,TextSize=size};t.SetTextColor(Ink);t.SetPadding(0,Dp(3),0,Dp(5));t.SetLineSpacing(Dp(2),1.05f);if(bold)t.SetTypeface(Typeface.Create("sans-serif-medium",TypefaceStyle.Normal),TypefaceStyle.Normal);return t;}
     private LinearLayout Card()
     {
-        var box=new LinearLayout(this){Orientation=Orientation.Vertical};box.SetPadding(Dp(17),Dp(13),Dp(17),Dp(13));
-        var background=new GradientDrawable();background.SetColor(AColor.White);background.SetCornerRadius(Dp(14));background.SetStroke(Dp(1),AColor.Rgb(222,231,224));box.Background=background;
-        content.AddView(box,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent,ViewGroup.LayoutParams.WrapContent){BottomMargin=Dp(13)});return box;
+        var box=new LinearLayout(this){Orientation=Orientation.Vertical};box.SetPadding(Dp(18),Dp(16),Dp(18),Dp(18));box.Background=Surface(AColor.White,20,Line);
+        content.AddView(box,new LinearLayout.LayoutParams(-1,-2){BottomMargin=Dp(16),TopMargin=Dp(4)});return box;
     }
     private EditText Input(LinearLayout host,string label,bool password=false,bool multiline=false,string value="")
     {
-        host.AddView(Text(label,13,true));var input=new EditText(this){Text=value,TextSize=15,InputType=password?InputTypes.ClassText|InputTypes.TextVariationPassword:multiline?InputTypes.ClassText|InputTypes.TextFlagMultiLine:InputTypes.ClassText};
-        if(!multiline)input.SetSingleLine(true);host.AddView(input,new LinearLayout.LayoutParams(-1,-2){BottomMargin=Dp(9)});return input;
+        host.AddView(Text(label,12,true));
+        var row=new LinearLayout(this){Orientation=Orientation.Horizontal};row.SetGravity(GravityFlags.CenterVertical);row.Background=Surface(AColor.Rgb(250,251,248),12,Line);row.SetPadding(Dp(12),0,Dp(4),0);
+        var input=new EditText(this){Text=value,TextSize=15,InputType=multiline?InputTypes.ClassText|InputTypes.TextFlagMultiLine:InputTypes.ClassText};
+        input.SetTextColor(Ink);input.SetHintTextColor(Muted);input.SetPadding(0,Dp(12),Dp(6),Dp(12));input.Background=null;input.Hint=password?"Nhập mật khẩu":"Nhập "+label.ToLowerInvariant();
+        if(!multiline)input.SetSingleLine(true);else{input.SetMinLines(3);input.Gravity=GravityFlags.Top;}
+        input.SetTypeface(Typeface.Create("sans-serif",TypefaceStyle.Normal),TypefaceStyle.Normal);
+        // SetSingleLine installs its own transformation. Apply masking AFTER it.
+        if(password){input.InputType=InputTypes.ClassText|InputTypes.TextVariationPassword;input.TransformationMethod=global::Android.Text.Method.PasswordTransformationMethod.Instance;input.ImeOptions=(global::Android.Views.InputMethods.ImeAction)((int)global::Android.Views.InputMethods.ImeAction.Done|(int)global::Android.Views.InputMethods.ImeFlags.NoExtractUi);input.SaveEnabled=false;}
+        row.AddView(input,new LinearLayout.LayoutParams(0,-2,1));
+        if(password){var shown=false;var toggle=new AButton(this){Text="Hiện",TextSize=12,ContentDescription="Hiện mật khẩu"};toggle.SetAllCaps(false);toggle.SetTextColor(Green);toggle.Background=Surface(AColor.Transparent,10);toggle.SetPadding(0,0,0,0);toggle.SetMinWidth(0);toggle.SetMinimumWidth(0);toggle.Click+=(_,_)=>{shown=!shown;input.TransformationMethod=shown?null:global::Android.Text.Method.PasswordTransformationMethod.Instance;toggle.Text=shown?"Ẩn":"Hiện";toggle.ContentDescription=shown?"Ẩn mật khẩu":"Hiện mật khẩu";input.SetSelection(input.Text?.Length??0);};row.AddView(toggle,new LinearLayout.LayoutParams(Dp(48),Dp(48)));}
+        host.AddView(row,new LinearLayout.LayoutParams(-1,-2){BottomMargin=Dp(14)});return input;
     }
     private AButton Button(LinearLayout host,string text,Func<Task> action,bool secondary=false)
     {
-        var button=new AButton(this){Text=text,TextSize=14};button.SetAllCaps(false);button.SetTextColor(secondary?Green:AColor.White);button.BackgroundTintList=global::Android.Content.Res.ColorStateList.ValueOf(secondary?AColor.Rgb(232,239,232):Green);
-        button.Click+=async(_,_)=>{button.Enabled=false;await Guard(action);if(button.Handle!=IntPtr.Zero)button.Enabled=true;};host.AddView(button,new LinearLayout.LayoutParams(-1,Dp(50)){TopMargin=Dp(5)});return button;
+        var button=new AButton(this){Text=text,TextSize=14};button.SetAllCaps(false);button.SetTextColor(secondary?Green:AColor.White);button.Background=Surface(secondary?AColor.White:Green,12,secondary?Line:null);button.Elevation=0;button.StateListAnimator=null;button.SetPadding(Dp(10),0,Dp(10),0);
+        button.Click+=async(_,_)=>{button.Enabled=false;button.Alpha=.65f;await Guard(action);if(button.Handle!=IntPtr.Zero){button.Enabled=true;button.Alpha=1;}};host.AddView(button,new LinearLayout.LayoutParams(-1,Dp(48)){TopMargin=Dp(8)});return button;
     }
     private async Task Guard(Func<Task> action)
     {try{await action();}catch(OperationCanceledException){}catch(Exception ex){if(!IsFinishing&&!IsDestroyed){message.Text=ex.Message;message.Visibility=ViewStates.Visible;message.SetTextColor(AColor.Rgb(155,48,28));}}}
@@ -93,7 +101,7 @@ public sealed partial class MainActivity:Activity
     private sealed class CancelDialog(Action action):Java.Lang.Object,IDialogInterfaceOnCancelListener{public void OnCancel(IDialogInterface? dialog)=>action();}
     private bool SignedIn(){if(api.IsCustomer)return true;LoginPage();return false;}
     private void Notice(string text){message.Text=text;message.Visibility=ViewStates.Visible;message.SetTextColor(Green);}
-    private async Task LoadImage(ImageView image,Uri url,CancellationToken ct)
+    private async Task LoadImage(ImageView image,Uri url,CancellationToken ct,bool isQr=false)
     {
         try
         {
@@ -101,27 +109,37 @@ public sealed partial class MainActivity:Activity
             if(response.Content.Headers.ContentLength>6*1024*1024)throw new IOException("Ảnh quá lớn.");
             using var data=new MemoryStream();await using var source=await response.Content.ReadAsStreamAsync(ct);var buffer=new byte[16384];int count;
             while((count=await source.ReadAsync(buffer,ct))>0){if(data.Length+count>6*1024*1024)throw new IOException("Ảnh quá lớn.");data.Write(buffer,0,count);}
-            var bytes=data.ToArray();var bounds=new BitmapFactory.Options{InJustDecodeBounds=true};await BitmapFactory.DecodeByteArrayAsync(bytes,0,bytes.Length,bounds);
+            var bytes=data.ToArray();var media=response.Content.Headers.ContentType?.MediaType;
+            if(media=="image/svg+xml")
+            {
+                if(isQr)throw new IOException("Định dạng QR không được hỗ trợ.");
+                var xml=System.Text.Encoding.UTF8.GetString(bytes);
+                using(var reader=System.Xml.XmlReader.Create(new StringReader(xml),new System.Xml.XmlReaderSettings{DtdProcessing=System.Xml.DtdProcessing.Prohibit,XmlResolver=null,MaxCharactersInDocument=6*1024*1024})){while(reader.Read()){} }
+                using var svg=Com.Caverock.Androidsvg.SVG.GetFromString(xml)??throw new IOException("SVG không hợp lệ.");using var picture=svg.RenderToPicture(900,600)??throw new IOException("Không đọc được ảnh SVG.");
+                var rendered=Bitmap.CreateBitmap(900,600,Bitmap.Config.Argb8888!)!;using(var canvas=new Canvas(rendered)){canvas.DrawColor(AColor.White);canvas.DrawPicture(picture!);}
+                ct.ThrowIfCancellationRequested();image.SetImageBitmap(rendered);image.ContentDescription="Hình minh họa phòng, chưa có ảnh thực tế";return;
+            }
+            var bounds=new BitmapFactory.Options{InJustDecodeBounds=true};await BitmapFactory.DecodeByteArrayAsync(bytes,0,bytes.Length,bounds);
             var sample=1;while(bounds.OutWidth/sample>1400||bounds.OutHeight/sample>1400)sample*=2;
             var bitmap=await BitmapFactory.DecodeByteArrayAsync(bytes,0,bytes.Length,new BitmapFactory.Options{InSampleSize=sample});if(ct.IsCancellationRequested)return;
             if(bitmap is null)throw new IOException("Ảnh không hợp lệ.");image.SetImageBitmap(bitmap);image.ContentDescription="Ảnh đã tải";
         }
         catch(OperationCanceledException){}
-        catch{if(!ct.IsCancellationRequested){image.ContentDescription="Không tải được ảnh";throw new ApiException("Không tải được ảnh/QR. Vui lòng thử lại, hoặc dùng thông tin chuyển khoản bên dưới.");}}
+        catch{if(!ct.IsCancellationRequested){image.ContentDescription=isQr?"Không tải được mã QR":"Không tải được ảnh phòng";throw new ApiException(isQr?"Không tải được mã QR. Bấm tải lại hoặc dùng thông tin chuyển khoản bên dưới.":"Chưa tải được ảnh phòng. Hãy thử lại.");}}
     }
     private ImageView Image(LinearLayout host,int height)
     {var image=new ImageView(this);image.SetScaleType(ImageView.ScaleType.FitCenter);host.AddView(image,new LinearLayout.LayoutParams(-1,Dp(height)));return image;}
     private AButton DateButton(LinearLayout host,string label,DateOnly initial,Action<DateOnly> changed)
     {
-        var selected=initial;AButton? button=null;button=Button(host,$"{label}: {selected:dd/MM/yyyy}",()=>{new DatePickerDialog(this,(_,a)=>{selected=DateOnly.FromDateTime(a.Date);button!.Text=$"{label}: {selected:dd/MM/yyyy}";changed(selected);},selected.Year,selected.Month-1,selected.Day).Show();return Task.CompletedTask;},true);return button;
+        var selected=initial;AButton? button=null;button=Button(host,$"{label}\n{selected:dd/MM/yyyy}",()=>{new DatePickerDialog(this,(_,a)=>{selected=DateOnly.FromDateTime(a.Date);button!.Text=$"{label}\n{selected:dd/MM/yyyy}";changed(selected);},selected.Year,selected.Month-1,selected.Day).Show();return Task.CompletedTask;},true);button.TextSize=12;button.LayoutParameters!.Height=Dp(62);button.Gravity=GravityFlags.Center;return button;
     }
     private void LoginPage()
     {
-        Page("Chào mừng trở lại","account");var box=Card();box.AddView(Text("Đăng nhập để giữ phòng, thanh toán và theo dõi kỳ nghỉ.",16));
+        Page("Chào mừng trở lại","account");var intro=Text("Một tài khoản, trọn vẹn kỳ nghỉ.\nĐăng nhập để đặt phòng và theo dõi thanh toán.",14);intro.SetTextColor(Muted);content.AddView(intro);var box=Card();
         var user=Input(box,"Tên đăng nhập");var password=Input(box,"Mật khẩu",true);
         Button(box,"Đăng nhập",async()=>{await api.Login(user.Text??"",password.Text??"",false,screen.Token);password.Text="";var target=pendingRoom;pendingRoom=null;if(target is not null)await ReservePage(target);else await MyBookings();});
         Button(box,"Tạo tài khoản",()=>{RegisterPage();return Task.CompletedTask;},true);Button(box,"Quên mật khẩu",()=>{ForgotPage();return Task.CompletedTask;},true);
-        box.AddView(Text("API: "+api.BaseAddress.Host,12));
+        var privacy=Text("Thông tin đăng nhập được bảo vệ khi kết nối với khách sạn.",12);privacy.SetTextColor(Muted);privacy.Gravity=GravityFlags.Center;content.AddView(privacy);
     }
     private void RegisterPage()
     {

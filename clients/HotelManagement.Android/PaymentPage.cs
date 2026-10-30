@@ -29,7 +29,7 @@ public sealed partial class MainActivity
             var value=PaymentRules.Deposit(due,percent);amount.Text=Presentation.Money(value);image.Visibility=global::Android.Views.ViewStates.Visible;
             account.Text=$"{bank.BankName}\nTài khoản nhận: {bank.AccountNumber}\nChủ tài khoản: {bank.AccountName}\nNội dung: ANNHIEN {id}";
             qrError.Text="Đang tải QR…";
-            try{await LoadImage(image,PaymentRules.Qr(bank,id,value),qrToken);if(render==qrGeneration&&!qrToken.IsCancellationRequested)qrError.Text="Quét QR bằng ứng dụng ngân hàng. Chỉ server mới xác nhận đã nhận tiền.";}
+            try{await LoadImage(image,PaymentRules.Qr(bank,id,value),qrToken,true);if(render==qrGeneration&&!qrToken.IsCancellationRequested)qrError.Text="Quét QR bằng ứng dụng ngân hàng. Chỉ server mới xác nhận đã nhận tiền.";}
             catch(OperationCanceledException){}
             catch(Exception e){if(render==qrGeneration&&!ct.IsCancellationRequested){image.Visibility=global::Android.Views.ViewStates.Gone;qrError.Text=e.Message;}}
         }

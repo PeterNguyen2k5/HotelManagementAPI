@@ -6,6 +6,8 @@ Hai ứng dụng dùng API `https://hotelmanagementapi-nw4d.onrender.com/`, khô
 
 File cài trực tiếp: `../App_Data/clients/Android/AnNhien.apk`. Chép file sang điện thoại Android 8 trở lên (ARM64), mở file và cài ứng dụng **An Nhiên**. Không cần Visual Studio trên điện thoại hoặc máy tính để sử dụng APK. Đăng nhập bằng tài khoản khách hàng đã đăng ký trên website; ứng dụng cần Internet để dùng API Render. Bản hiện tại là bản ký cài thử, chưa phát hành Google Play.
 
+Bản **1.1.0** dùng bố cục dọc, giới hạn chiều rộng trên màn hình lớn, ảnh đầu trang cùng website, thẻ phòng và thanh điều hướng dưới. Bộ chọn khách dùng nút tăng/giảm theo sức chứa từ API. Mật khẩu mặc định được che, có nút Hiện/Ẩn; áp dụng cho cả đăng nhập và đăng ký. Ảnh phòng SVG được đọc bằng AndroidSVG (Apache 2.0), lỗi ảnh phòng không còn hiển thị thông báo lỗi chuyển khoản. Mã QR vẫn yêu cầu ảnh tải thành công và hiển thị lỗi riêng khi không tải được; không sinh QR minh họa.
+
 ## Mở WinForms trong Visual Studio hiện tại
 
 1. Đóng solution cũ, chọn **File → Open → Project/Solution** và mở `HotelManagement.WinForms.sln` trong thư mục này.
