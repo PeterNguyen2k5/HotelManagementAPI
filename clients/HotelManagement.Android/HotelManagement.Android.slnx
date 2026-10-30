@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="HotelManagement.Android.csproj" />
+  <Project Path="../HotelManagement.Client/HotelManagement.Client.csproj" />
+</Solution>

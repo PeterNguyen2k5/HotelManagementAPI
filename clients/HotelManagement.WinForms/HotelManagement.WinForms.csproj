@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>WinExe</OutputType><TargetFramework>net8.0-windows</TargetFramework><RuntimeFrameworkVersion>8.0.33</RuntimeFrameworkVersion><UseWindowsForms>true</UseWindowsForms><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><ApplicationManifest>app.manifest</ApplicationManifest><AssemblyName>AnNhien.Staff</AssemblyName></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../HotelManagement.Client/HotelManagement.Client.csproj" /></ItemGroup>
+</Project>

@@ -1,0 +1,7 @@
+{
+  "version": "1.0",
+  "components": [
+    "Microsoft.VisualStudio.ComponentGroup.Maui.Android",
+    "Microsoft.VisualStudio.ComponentGroup.Maui.Shared"
+  ]
+}
