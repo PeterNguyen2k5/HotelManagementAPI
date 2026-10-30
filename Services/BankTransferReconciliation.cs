@@ -59,7 +59,7 @@ public sealed class BankTransferReconciliation(HotelDbContext db, HotelWorkflow 
         // Refunds may leave a different hotel account. Snapshot the selected source, not the guest's destination.
         var sourceBank = BankIdentity.Canonical(request.BankId ?? bank.BankId)
             ?? throw new WorkflowConflict("Không nhận diện được ngân hàng chi hoàn tiền. Hãy chọn mã ngân hàng hợp lệ.");
-        var sourceAccount = (request.BankAccountNumber ?? bank.AccountNumber).Trim();
+        var sourceAccount = (request.BankAccountNumber ?? bank.SettlementAccountNumber).Trim();
         if (sourceAccount.Length == 0) throw new WorkflowConflict("Hãy nhập tài khoản của khách sạn đã chi hoàn tiền.");
         var reference = NormalizeReference(request.Reference);
         var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
@@ -92,7 +92,11 @@ public sealed class BankTransferReconciliation(HotelDbContext db, HotelWorkflow 
         if (request.BankId is not null && !request.BankId.Trim().Equals(bank.BankId.Trim(), StringComparison.OrdinalIgnoreCase) ||
             request.BankAccountNumber is not null && request.BankAccountNumber.Trim() != bank.AccountNumber.Trim())
             throw new WorkflowConflict("Tài khoản nhận tiền đã thay đổi. Hãy mở lại form và kiểm tra chứng từ trước khi ghi chuyển khoản.");
-        var key = ReferenceKey(bank.BankId, bank.AccountNumber, request.Reference)!;
+        var settlementAccount = bank.SettlementAccountNumber;
+        var key = ReferenceKey(bank.BankId, settlementAccount, request.Reference)!;
+        var previousVaKey = ReferenceKey(bank.BankId, bank.AccountNumber, request.Reference);
+        if (previousVaKey != key && await db.BookingPayments.AnyAsync(x => x.BankReferenceKey == previousVaKey))
+            throw new WorkflowConflict("Có khoản thu theo VA trước khi cấu hình tài khoản chính. Hãy đối soát lịch sử, không ghi thêm tiền.");
         var existing = await db.BookingPayments.FirstOrDefaultAsync(x => x.BankReferenceKey == key);
         if (existing is not null)
         {
@@ -104,7 +108,7 @@ public sealed class BankTransferReconciliation(HotelDbContext db, HotelWorkflow 
         if (receipts.Count > 1 || receipts.Any(x => x.Status != "Pending"))
             throw new WorkflowConflict("Mã tham chiếu đã có giao dịch ngân hàng được xử lý hoặc cần xác minh. Hãy mở Đối soát chuyển khoản.");
         // Older rows have no reliable account snapshot; do not guess their bank from today's config.
-        var oldReceipts = await db.BankTransfers.Where(x => x.BankReferenceKey == null && x.AccountNumber == bank.AccountNumber)
+        var oldReceipts = await db.BankTransfers.Where(x => x.BankReferenceKey == null && x.AccountNumber == settlementAccount)
             .Select(x => x.ReferenceCode).ToListAsync();
         if (oldReceipts.Any(x => NormalizeReference(x) == NormalizeReference(request.Reference)) ||
             await HasLegacyReference(request.Reference))
@@ -164,17 +168,23 @@ public sealed class BankTransferReconciliation(HotelDbContext db, HotelWorkflow 
     }
 
     // The caller holds a serializable transaction across receipt, payment and audit writes.
-    public async Task<BankTransfer> Receive(SepayWebhookRequest request, string bankId)
+    public async Task<BankTransfer> Receive(SepayWebhookRequest request, string bankId, bool virtualAccount = false)
     {
         var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
         {
             request.AccountNumber, amount = request.TransferAmount.ToString("G29", CultureInfo.InvariantCulture), request.Content, request.Description,
             request.Code, request.ReferenceCode, request.Gateway, request.TransactionDate
         }))));
+        var legacyFingerprint = fingerprint;
+        if (virtualAccount)
+            fingerprint = "VA1:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
+                JsonSerializer.Serialize(new[] { legacyFingerprint, request.SubAccount }))));
         var existing = await db.BankTransfers.Include(x => x.Payment).FirstOrDefaultAsync(x => x.SepayId == request.Id);
         if (existing is not null)
         {
-            if (existing.Fingerprint != fingerprint)
+            // Keep genuine retries of receipts saved before VA support compatible.
+            // Newly saved VA1 receipts bind subAccount into their immutable identity.
+            if (existing.Fingerprint != fingerprint && !(virtualAccount && existing.Fingerprint == legacyFingerprint))
                 throw new WorkflowConflict("ID SePay đã tồn tại với nội dung hoặc số tiền khác. Hãy kiểm tra giao dịch gốc.");
             if (existing.Status == "Pending" && BookingCodes(existing.Content, existing.Description, existing.Code).Reason is { } codeReason)
             {
@@ -203,6 +213,13 @@ public sealed class BankTransferReconciliation(HotelDbContext db, HotelWorkflow 
         }
         if (transfer.BankReferenceKey is not null)
         {
+            var previousVaKey = virtualAccount ? ReferenceKey(bankId, request.SubAccount!, request.ReferenceCode) : null;
+            if (previousVaKey is not null && previousVaKey != transfer.BankReferenceKey &&
+                await db.BookingPayments.AnyAsync(x => x.BankReferenceKey == previousVaKey))
+            {
+                transfer.Reason = "ExistingPaymentConflict";
+                return transfer;
+            }
             var payment = await db.BookingPayments.FirstOrDefaultAsync(x => x.BankReferenceKey == transfer.BankReferenceKey);
             if (payment is not null)
             {

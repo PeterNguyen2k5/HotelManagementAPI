@@ -62,9 +62,16 @@ public sealed class BankConfigSave
     [Required, StringLength(50)] public string BankId { get; set; } = "";
     [Required, StringLength(100)] public string BankName { get; set; } = "";
     [Required, StringLength(50)] public string AccountNumber { get; set; } = "";
+    // AccountNumber remains the QR destination. With a VA, SePay sends the main
+    // account in accountNumber and the QR destination in subAccount.
+    [StringLength(50)] public string? WebhookAccountNumber { get; set; }
     [Required, StringLength(100)] public string AccountName { get; set; } = "";
     [StringLength(500)] public string? QrImageUrl { get; set; }
     [StringLength(100)] public string? SepayApiKey { get; set; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string SettlementAccountNumber => string.IsNullOrWhiteSpace(WebhookAccountNumber)
+        ? AccountNumber : WebhookAccountNumber;
 
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsConfigured => !string.IsNullOrWhiteSpace(BankId) &&
