@@ -6,6 +6,8 @@
     <RuntimeFrameworkVersion>8.0.33</RuntimeFrameworkVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Local data, release artifacts and staging copies are never project source. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);App_Data/**</DefaultItemExcludes>
     <UserSecretsId>HotelManagementAPI-77681bb6-11c9-4247-9dda-2acdf41651fe</UserSecretsId>
     <NuGetAuditMode>all</NuGetAuditMode>
     <WarningsAsErrors>$(WarningsAsErrors);NU1903;NU1904</WarningsAsErrors>
