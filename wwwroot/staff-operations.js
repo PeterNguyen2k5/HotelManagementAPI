@@ -169,7 +169,7 @@ action=async function(name,id){
    {name:'amount',label:'Số tiền',type:'number',value:p.balance.due||p.balance.refundDue,min:0.01,max:p.balance.due||p.balance.refundDue,required:true,help:'Cần thu: '+money(p.balance.due)+' · Cần hoàn: '+money(p.balance.refundDue)},
    {name:'reference',label:'Mã giao dịch ngân hàng / ghi chú tiền mặt',help:'Với chuyển khoản, nhập chính xác mã giao dịch từ ngân hàng, không nhập nội dung chuyển tiền. '+(bank.bankConfigured?'Tài khoản nhận: '+bank.bankName+' · '+bank.accountNumber+'.':'Chưa tải được tài khoản nhận chuyển khoản.')},
    {name:'bankId',label:'Ngân hàng chi hoàn tiền',value:bank.bankId||'',help:'Mã ngân hàng của tài khoản khách sạn đã chi tiền, ví dụ MB hoặc VCB.'},
-   {name:'bankAccountNumber',label:'Tài khoản khách sạn đã chi hoàn tiền',value:bank.accountNumber||'',help:'Đối chiếu chứng từ chuyển đi. Không nhập tài khoản khách nhận tiền.'}],{},v=>{
+   {name:'bankAccountNumber',label:'Tài khoản khách sạn đã chi hoàn tiền',value:bank.webhookAccountNumber||bank.accountNumber||'',help:'Đối chiếu chứng từ chuyển đi. Không nhập tài khoản khách nhận tiền.'}],{},v=>{
     const incoming=v.method==='Transfer'&&v.type!=='Refund';
     if(incoming&&!bank.bankConfigured)throw new Error('Chưa có thông tin tài khoản nhận. Hãy kiểm tra cấu hình ngân hàng rồi mở lại form.');
     const outgoing=v.method==='Transfer'&&v.type==='Refund';
@@ -194,7 +194,8 @@ action=async function(name,id){
   modalForm('Cấu hình SePay & Ngân hàng nhận thanh toán',[
    {name:'bankId',label:'Mã ngân hàng (VietQR)',value:cfg.bankId||'',help:'Ví dụ: MB, VCB, TCB, ACB, VPB, BIDV, CTG, TPB...',required:true},
    {name:'bankName',label:'Tên ngân hàng',value:cfg.bankName||'',required:true},
-   {name:'accountNumber',label:'Số tài khoản',value:cfg.accountNumber||'',help:'Nhập số tài khoản nhận thanh toán thực tế của khách sạn.',required:true},
+   {name:'accountNumber',label:'Số tài khoản',value:cfg.accountNumber||'',help:'Số khách chuyển vào, dùng trên QR. Với BIDV qua SePay, nhập số VA đang hoạt động.',required:true},
+   {name:'webhookAccountNumber',label:'Tài khoản chính liên kết SePay (khi dùng VA)',value:cfg.webhookAccountNumber||'',help:'Nhập accountNumber của payload SePay. Khi điền, webhook phải khớp tài khoản chính này và subAccount phải khớp số VA ở trên. Để trống nếu nhận trực tiếp vào tài khoản thường.'},
    {name:'accountName',label:'Tên chủ tài khoản',value:cfg.accountName||'',required:true},
    {name:'sepayApiKey',label:'Khóa xác thực webhook SePay',type:'password',value:'',help:(cfg.sepayConfigured?'Đã cấu hình. ':'Chưa cấu hình. ')+'Để trống để giữ khóa hiện có. Chọn API Key trong cấu hình webhook; khóa không hiển thị lại.'},
    {name:'qrImageUrl',label:'URL ảnh QR tùy chỉnh (tùy chọn)',value:cfg.qrImageUrl||'',help:'Nếu để trống, hệ thống sẽ tự động tạo mã VietQR theo chuẩn Napas.'},

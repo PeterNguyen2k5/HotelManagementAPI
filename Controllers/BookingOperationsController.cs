@@ -111,6 +111,7 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
         bankId = config.IsConfigured ? config.BankId : "",
         bankName = config.IsConfigured ? config.BankName : "",
         accountNumber = config.IsConfigured ? config.AccountNumber : "",
+        webhookAccountNumber = config.IsConfigured ? config.WebhookAccountNumber : null,
         accountName = config.IsConfigured ? config.AccountName : "",
         qrImageUrl = config.IsConfigured ? config.QrImageUrl : null,
         sepayConfigured = !string.IsNullOrWhiteSpace(configuration["Payments:SepayWebhookKey"] ?? config.SepayApiKey),
@@ -129,6 +130,8 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
     [HttpPost("bank-config"), Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> SaveBankConfig(BankConfigSave config)
     {
+        config.WebhookAccountNumber = string.IsNullOrWhiteSpace(config.WebhookAccountNumber)
+            ? null : config.WebhookAccountNumber.Trim();
         if (!config.IsConfigured)
             return BadRequest(new { message = "Hãy nhập thông tin tài khoản ngân hàng thực tế. Không sử dụng tài khoản mẫu." });
         await BankConfigLock.WaitAsync(HttpContext.RequestAborted);
@@ -327,8 +330,11 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
         if (!authorization.StartsWith("Apikey ", StringComparison.Ordinal) ||
             !CryptographicOperations.FixedTimeEquals(SHA256.HashData(Encoding.UTF8.GetBytes(expected)),
                 SHA256.HashData(Encoding.UTF8.GetBytes(authorization[7..])))) return Unauthorized();
-        if (!string.Equals(request.AccountNumber, config.AccountNumber, StringComparison.Ordinal))
+        if (!string.Equals(request.AccountNumber, config.SettlementAccountNumber, StringComparison.Ordinal))
             return BadRequest(new { message = "Tài khoản nhận tiền không khớp cấu hình." });
+        if (!string.IsNullOrWhiteSpace(config.WebhookAccountNumber) &&
+            !string.Equals(request.SubAccount, config.AccountNumber, StringComparison.Ordinal))
+            return BadRequest(new { message = "Tài khoản ảo (subAccount) không khớp VA nhận thanh toán đã cấu hình." });
         if (!BankIdentity.Matches(config.BankId, request.Gateway))
             return BadRequest(new { message = "Ngân hàng của giao dịch không khớp hoặc chưa nhận diện được. Kiểm tra gateway SePay và ngân hàng đã cấu hình." });
         if (string.Equals(request.TransferType, "out", StringComparison.OrdinalIgnoreCase))
@@ -339,7 +345,7 @@ public sealed class BookingOperationsController(HotelDbContext db,HotelWorkflow 
         try
         {
             await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-            var transfer = await reconciliation.Receive(request, config.BankId);
+            var transfer = await reconciliation.Receive(request, config.BankId, !string.IsNullOrWhiteSpace(config.WebhookAccountNumber));
             await db.SaveChangesAsync(); await tx.CommitAsync();
             // Acknowledgement means the receipt is durable; Pending does not mean the booking was paid.
             return Ok(new { success = true, transferId = transfer.Id, status = transfer.Status,
