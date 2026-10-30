@@ -1,0 +1,6 @@
+<Solution>
+  <!-- Windows / Visual Studio 2022. Build Android from its separate solution. -->
+  <Project Path="HotelManagement.WinForms/HotelManagement.WinForms.csproj" />
+  <Project Path="HotelManagement.Client/HotelManagement.Client.csproj" />
+  <Project Path="HotelManagement.Client.Checks/HotelManagement.Client.Checks.csproj" />
+</Solution>

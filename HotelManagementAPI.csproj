@@ -12,6 +12,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Native clients have their own SDKs, entry points and publish outputs. -->
+    <Compile Remove="clients/**/*.cs" />
+    <Content Remove="clients/**" />
+    <None Remove="clients/**" />
     <Content Remove="**/recovery-settings.json" />
     <FrameworkReference Update="Microsoft.AspNetCore.App" RuntimeFrameworkVersion="$(RuntimeFrameworkVersion)" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />

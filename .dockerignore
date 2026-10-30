@@ -5,6 +5,7 @@
 bin
 obj
 tests
+clients
 *.db
 *.db-*
 **/*.db
