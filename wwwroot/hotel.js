@@ -84,14 +84,39 @@ async function loadGuestOptions() {
   })();
   try { await guestOptionsRequest; } finally { guestOptionsRequest = null; }
 }
-function renderRooms(rooms) {
+const ROOMS_PER_PAGE = 6;
+let currentRoomsPage = 1;
+
+function renderRooms(rooms, page = 1) {
   if (!rooms.length) {
     roomResults.innerHTML = '<div class="empty-room">Không có phòng khả dụng trong khoảng ngày này. Hãy thử ngày khác.</div>';
     return;
   }
-  roomResults.innerHTML = '<div class="room-grid">' + rooms.map(room =>
+  const totalPages = Math.ceil(rooms.length / ROOMS_PER_PAGE);
+  currentRoomsPage = Math.max(1, Math.min(page, totalPages));
+  const startIndex = (currentRoomsPage - 1) * ROOMS_PER_PAGE;
+  const pagedRooms = rooms.slice(startIndex, startIndex + ROOMS_PER_PAGE);
+
+  let paginationHtml = '';
+  if (totalPages > 1) {
+    const startNum = startIndex + 1;
+    const endNum = Math.min(startIndex + ROOMS_PER_PAGE, rooms.length);
+    paginationHtml = '<div class="room-pagination">' +
+      '<span class="pagination-info">Hiển thị ' + startNum + '–' + endNum + ' trên ' + rooms.length + ' phòng · Trang ' + currentRoomsPage + ' / ' + totalPages + '</span>' +
+      '<div class="pagination-buttons">' +
+      '<button type="button" class="btn-page" data-room-page="' + (currentRoomsPage - 1) + '"' + (currentRoomsPage <= 1 ? ' disabled' : '') + '>← Trang trước</button>' +
+      '<div class="page-numbers">' +
+      Array.from({ length: totalPages }, (_, i) => i + 1).map(p =>
+        '<button type="button" class="btn-page-num' + (p === currentRoomsPage ? ' active' : '') + '" data-room-page="' + p + '">' + p + '</button>'
+      ).join('') +
+      '</div>' +
+      '<button type="button" class="btn-page" data-room-page="' + (currentRoomsPage + 1) + '"' + (currentRoomsPage >= totalPages ? ' disabled' : '') + '>Trang sau →</button>' +
+      '</div></div>';
+  }
+
+  roomResults.innerHTML = '<div class="room-grid">' + pagedRooms.map(room =>
     '<article class="room-card"><img src="'+escapeHtml(room.coverUrl||('/images/room-illustrations/room-'+(room.id%3+1)+'-1.svg'))+'" alt="Phòng '+escapeHtml(room.roomNumber)+'" loading="lazy"><div class="room-card-body"><span class="category">'+escapeHtml(room.roomTypeName)+'</span><h3><button type="button" data-room-detail="'+room.id+'">Phòng '+escapeHtml(room.roomNumber)+'</button></h3><p>Tối đa '+room.capacity+' khách</p><p>'+escapeHtml(room.description || 'Không gian nghỉ dưỡng tiện nghi và riêng tư.')+'</p><div class="room-card-footer"><div><strong>'+money(room.price)+'</strong><small>Mỗi đêm</small></div><div class="room-card-actions"><button type="button" class="room-detail-link" data-room-detail="'+room.id+'">Xem chi tiết</button><button type="button" data-room="'+room.id+'">Đặt phòng</button></div></div></div></article>'
-  ).join('') + '</div>';
+  ).join('') + '</div>' + paginationHtml;
 }
 async function loadRooms(scroll = false) {
   const revision = ++roomSearchRevision;
@@ -112,10 +137,11 @@ async function loadRooms(scroll = false) {
     if (revision !== roomSearchRevision) return;
     if (!Array.isArray(rooms)) throw new Error('Không tải được danh sách phòng. Vui lòng thử lại.');
     availableRooms = rooms;
+    currentRoomsPage = 1;
     document.getElementById('date-summary').textContent =
       new Date(checkInDate + 'T12:00:00').toLocaleDateString('vi-VN') + ' → ' +
       new Date(checkOutDate + 'T12:00:00').toLocaleDateString('vi-VN');
-    renderRooms(availableRooms);
+    renderRooms(availableRooms, 1);
   } catch (error) {
     if (revision !== roomSearchRevision) return;
     roomResults.innerHTML = '<div class="empty-room room-search-error"><h3>Chưa tải được phòng</h3><p>'+escapeHtml(error.message)+'</p><button type="button" data-room-retry>Thử lại</button></div>';
@@ -182,6 +208,16 @@ searchForm.onsubmit = async event => {
 searchForm.elements.namedItem('guests').onchange = () => loadRooms();
 roomResults.onclick = event => {
   if (event.target.closest('[data-room-retry]')) { loadRooms(); return; }
+  const pageBtn = event.target.closest('[data-room-page]');
+  if (pageBtn && !pageBtn.disabled) {
+    const targetPage = Number(pageBtn.dataset.roomPage);
+    if (Number.isInteger(targetPage) && targetPage >= 1) {
+      currentRoomsPage = targetPage;
+      renderRooms(availableRooms, currentRoomsPage);
+      document.getElementById('rooms')?.scrollIntoView({ behavior: 'smooth' });
+    }
+    return;
+  }
   const detail = event.target.closest('[data-room-detail]');
   if (detail) { openRoomDetails(Number(detail.dataset.roomDetail)); return; }
   const button = event.target.closest('[data-room]');
