@@ -2,6 +2,10 @@
 
 Một project ASP.NET Core 8 chứa cả API và giao diện quản lý khách sạn. Dữ liệu lưu trong SQLite tại `hotel.db` cạnh file project; ứng dụng tự tạo cơ sở dữ liệu và áp dụng EF Core migrations khi chạy lần đầu. Không cần SQL Server hoặc chạy frontend riêng.
 
+## Đọc mã nguồn và chuẩn bị vấn đáp
+
+Controller được xếp vào **6 thư mục nghiệp vụ**: `Authentication`, `Rooms`, `Bookings`, `Payments`, `Customers`, `Operations`. Xem [bản đồ Controller](Controllers/README.md) và [tài liệu vấn đáp API](docs/VAN-DAP-API.md) để biết thứ tự đọc, luồng CRUD/booking/thanh toán và câu hỏi thường gặp. Việc nhóm thư mục giữ nguyên 19 Controller cùng các route hiện có.
+
 ## Tạo dữ liệu phòng mẫu trên website mới
 
 Đăng nhập Admin ở `/index.html`, mở **Quản lý phòng → Tạo dữ liệu mẫu** khi danh sách còn trống. Tạo 3 hạng phòng Standard/Deluxe/Family (đều ghi rõ mẫu), 6 phòng M101–M302 có sức chứa, diện tích, giường, tiện nghi và hình SVG minh họa; giá lần lượt 450.000đ, 750.000đ và 1.100.000đ/đêm. Chỉnh lại theo khách sạn thực tế trước khi nhận khách thật. Không tạo tài khoản, hồ sơ khách, booking, khoản thu hay cấu hình ngân hàng giả.
