@@ -15,10 +15,11 @@ const nav = [
   ['payments','Quản lý thanh toán','revenue'],
   ['reconciliation','Đối soát chuyển khoản','revenue'],
   ['rooms','Quản lý phòng','bed'],['customers','Khách hàng','users'],
+  ['users','Quản lý nhân viên','users'],
   ['requests','Yêu cầu của khách','calendar'],['housekeeping','Dọn phòng','bed'],['administration','Sao lưu & Nhật ký','settings'],['reports','Báo cáo','chart'],['settings','Cài đặt','settings']
 ];
 const viewLabels = Object.fromEntries([...nav, ['roomtypes','Loại phòng'],
-  ['services','Dịch vụ'],['users','Nhân sự']].map(x => [x[0], x[1]]));
+  ['services','Dịch vụ']].map(x => [x[0], x[1]]));
 const iconPaths = {
   dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
   calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>',
@@ -133,8 +134,8 @@ function setStaffMenu(open,focus){
   else if(focus==='trigger')button.focus();
 }
 function shell(){
-  const settingsActive=['settings','roomtypes','services','users'].includes(state.view);
-  const links=nav.filter(x=>state.user.role==='Admin'||!['reports','administration'].includes(x[0]))
+  const settingsActive=['settings','roomtypes','services'].includes(state.view);
+  const links=nav.filter(x=>state.user.role==='Admin'||!['reports','administration','users'].includes(x[0]))
     .map(x=>'<button class="nav-item '+((state.view===x[0]||(x[0]==='settings'&&settingsActive))?'active':'')+'" data-view="'+x[0]+'">'+icon(x[2])+'<span>'+x[1]+'</span></button>').join('');
   const initials=state.user.fullName.split(/\s+/).slice(-2).map(x=>x[0]||'').join('').toUpperCase();
   const rawDate=new Intl.DateTimeFormat('vi-VN',{timeZone:window.hotelTime.zone,weekday:'long',day:'numeric',month:'long'}).format(new Date());
@@ -213,6 +214,7 @@ async function dashboard(){
     const initials=(x.customerName||'?').trim().split(/\s+/).slice(-2).map(part=>part[0]||'').join('').toUpperCase();
     return '<tr><td><div class="guest-name"><span class="table-avatar">'+esc(initials)+'</span><span>'+esc(x.customerName)+'</span></div></td><td>'+esc(x.roomNumber)+'</td><td>'+date(x.checkInDate)+'<br>'+date(x.checkOutDate)+'</td><td>'+money(x.totalAmount)+'</td><td>'+badge(statusName(x.status),x.status==='CheckedIn'?'good':x.status==='Cancelled'?'bad':x.status==='Reserved'?'warn':'')+'</td></tr>';
   }).join('');
+  if(state.view!=='dashboard'||!state.user)return;
   document.getElementById('main').innerHTML=
     '<div class="page-head dashboard-head"><div><p>'+esc(greeting)+', '+esc(firstName)+'</p><h1>Khách sạn hôm nay thế nào?</h1></div><button class="btn primary" data-act="booking-add">+ Tạo đặt phòng</button></div>'+
     '<div class="cards">'+metrics.map((x,i)=>'<article class="card"><div class="card-top"><span class="metric-icon '+(i===0?'gold':'')+'">'+icon(x[3])+'</span><small>'+esc(x[2])+'</small></div><span class="card-label">'+esc(x[0])+'</span><strong>'+x[1]+'</strong></article>').join('')+'</div>'+
@@ -222,7 +224,7 @@ async function dashboard(){
 async function settings(){
   const links=[['roomtypes','Loại phòng','Quản lý danh mục và mô tả loại phòng.'],
     ['services','Dịch vụ','Giá dịch vụ và dịch vụ khách đã sử dụng.'],
-    ...(state.user.role==='Admin'?[['users','Nhân sự','Tài khoản và phân quyền nhân viên.'],
+    ...(state.user.role==='Admin'?[['users','Quản lý nhân viên','Thêm, sửa, phân quyền và khóa/mở khóa tài khoản nhân viên.'],
       ['bank-config-view','Cấu hình QR & Ngân hàng','Cài đặt số tài khoản và mã QR chuyển khoản cho khách.']]:[])];
   document.getElementById('main').innerHTML=head('Cài đặt','Quản lý danh mục và tài khoản trong hệ thống.')+
     '<div class="settings-grid">'+links.map(x=>'<button class="settings-tile" data-view="'+x[0]+'"><strong>'+x[1]+'</strong><span>'+x[2]+'</span><b>→</b></button>').join('')+'</div>'+
@@ -279,8 +281,9 @@ async function reports(){
 }
 async function users(){
   const rows=await api('/api/Users');
-  document.getElementById('main').innerHTML=head('Nhân sự','Tài khoản và quyền truy cập.','user-add','Thêm nhân viên')+
-    table(['Tài khoản','Họ tên','Email','Vai trò','Trạng thái','Thao tác'],rows.map(x=>'<tr><td><strong>'+esc(x.username)+'</strong></td><td>'+esc(x.fullName)+'</td><td>'+esc(x.email||'—')+'</td><td>'+badge(x.role)+'</td><td>'+badge(x.isActive?'Hoạt động':'Vô hiệu',x.isActive?'good':'bad')+'</td><td class="actions">'+btn('Sửa','user-edit',x.id)+(x.isActive&&x.id!==state.user.id?btn('Vô hiệu','user-delete',x.id,'danger'):'')+'</td></tr>'));
+  if(state.view!=='users'||state.user?.role!=='Admin')return;
+  document.getElementById('main').innerHTML=head('Quản lý nhân viên','Thêm, sửa, phân quyền và khóa/mở khóa tài khoản. Chỉ quản trị viên được truy cập.','user-add','Thêm nhân viên')+
+    table(['Tài khoản','Họ tên','Email','Vai trò','Trạng thái','Thao tác'],rows.map(x=>'<tr><td><strong>'+esc(x.username)+'</strong>'+(x.id===state.user.id?'<div class="muted">Tài khoản của bạn</div>':'')+'</td><td>'+esc(x.fullName)+'</td><td>'+esc(x.email||'—')+'</td><td>'+badge(x.role==='Admin'?'Quản trị viên':'Lễ tân')+'</td><td>'+badge(x.isActive?'Hoạt động':'Đã khóa',x.isActive?'good':'bad')+'</td><td class="actions">'+btn('Sửa','user-edit',x.id)+(x.isActive&&x.id!==state.user.id?btn('Khóa','user-delete',x.id,'danger'):!x.isActive?btn('Mở khóa','user-activate',x.id,'primary'):'')+'</td></tr>'));
 }
 
 function modalForm(title,fields,initial,onSubmit,onOpen){
@@ -469,17 +472,25 @@ async function action(name,id){
       ]:[]),
       {name:'fullName',label:'Họ tên',required:true},
       {name:'email',label:'Email',type:'email'},
-      {name:'role',label:'Vai trò',options:[['Receptionist','Receptionist'],['Admin','Admin']],required:true},
+      {name:'role',label:'Vai trò',options:[['Receptionist','Lễ tân'],['Admin','Quản trị viên']],required:true},
       ...(id?[{name:'isActive',label:'Hoạt động',type:'boolean',options:[['true','Có'],['false','Không']]}]:[])
     ];
     modalForm(id?'Sửa nhân viên':'Thêm nhân viên',fields,item,
       v=>api('/api/Users'+(id?'/'+id:''),{method:id?'PUT':'POST',body:v}));return}
+  if(name==='user-activate'){
+    if(state.user?.role!=='Admin')throw new Error('Chỉ quản trị viên được quản lý nhân viên.');
+    const item=await api('/api/Users/'+id);
+    if(item.isActive){note('Tài khoản đã hoạt động.');await render();return;}
+    if(!confirm('Mở khóa tài khoản '+item.username+'? Nhân viên cần đăng nhập lại; phiên cũ không được khôi phục.'))return;
+    await api('/api/Users/'+id,{method:'PUT',body:{fullName:item.fullName,email:item.email,role:item.role,isActive:true}});
+    note('Đã mở khóa. Nhân viên có thể đăng nhập lại.');await render();return;
+  }
   const deletions={
     'type-delete':['/api/RoomTypes/','Xóa loại phòng này?'],
     'room-delete':['/api/Rooms/','Xóa phòng này?'],
     'customer-delete':['/api/Customers/','Xóa khách hàng này?'],
     'service-delete':['/api/Services/','Vô hiệu hóa dịch vụ này?'],
-    'user-delete':['/api/Users/','Vô hiệu hóa tài khoản này?'],
+    'user-delete':['/api/Users/','Khóa tài khoản nhân viên này? Các phiên đăng nhập hiện tại sẽ mất hiệu lực.'],
     'usage-delete':['/api/Services/usage/','Xóa dịch vụ đã sử dụng?']
   };
   if(deletions[name]){

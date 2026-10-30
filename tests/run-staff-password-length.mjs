@@ -86,7 +86,7 @@ try{
    await expect(page.locator('#login-error')).toContainText('72 byte UTF-8');assert.equal(sent.login,0);
    await page.locator('#password').fill(testAdminPassword);await page.locator('#login-form [type="submit"]').click();
    await expect(page.locator('.dashboard-head')).toBeVisible();
-   await page.locator('[data-view="settings"]').click();await page.locator('[data-view="users"]').click();
+   await page.locator('.sidebar [data-view="users"]').click();
    await page.locator('[data-act="user-add"]').click();
    await page.locator('#f-username').fill('ui-too-long');await page.locator('#f-password').fill('A'.repeat(73));await page.locator('#f-fullName').fill('UI fixture');
    assert.equal((await page.locator('#f-password').inputValue()).length,73,'Do not silently truncate pasted input.');
