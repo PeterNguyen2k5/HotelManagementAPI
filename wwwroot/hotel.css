@@ -11,6 +11,7 @@ a { color: inherit; text-decoration: none; }
 .site-brand small { display: block; margin-top: 6px; font: 600 9px/1 'DM Sans', sans-serif; letter-spacing: .28em; }
 .site-header nav { display: flex; gap: 38px; font-size: 13px; }
 .site-header nav a:hover, .admin-link:hover { color: #f0cc85; }
+.site-menu-toggle, .site-header .site-nav-mobile { display: none; }
 .admin-link { padding: 10px 19px; border: 1px solid #ffffff88; border-radius: 99px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .site-hero { min-height: 760px; display: flex; flex-direction: column; justify-content: center; position: relative; color: #fff; background: linear-gradient(90deg, #0b2d26d1 0%, #0b2d266b 64%, #0b2d2647 100%), url('/images/hero.jpg') center/cover no-repeat; }
 .hero-inner { width: min(1200px, calc(100% - 48px)); margin: auto; padding: 65px 0 110px; }
@@ -102,8 +103,41 @@ dialog::backdrop { background: #0b2d2680; }
   .room-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media(max-width: 680px) {
-  .site-header { width: calc(100% - 32px); height: 76px; }
+  .site-header { width: calc(100% - 32px); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding-block: 12px; }
+  .site-header .customer-actions { grid-column: 1; grid-row: 2; justify-content: flex-start; max-width: none; }
+  .site-header .guest-notifications { grid-column: 2; grid-row: 2; justify-self: end; }
+  .site-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid #dce5dc;
+    border-radius: 10px;
+    background: #fff;
+    color: #12372d;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .site-menu-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
   .site-header nav { display: none; }
+  .site-menu-toggle[aria-expanded="true"] + nav {
+    display: grid;
+    position: absolute;
+    z-index: 1;
+    inset: calc(100% + 4px) 0 auto;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid #dce5dc;
+    border-radius: 14px;
+    background: #fff;
+    color: #12372d;
+    box-shadow: 0 12px 32px #0b2d2633;
+  }
+  .site-header nav a { display: block; min-height: 44px; padding: 12px 14px; border-radius: 8px; font-size: 15px; font-weight: 700; }
+  .site-header nav a:hover, .site-header nav a:focus-visible { color: #12372d; background: #edf3ee; }
+  .site-header .site-nav-desktop { display: none; }
+  .site-header .site-nav-mobile { display: block; }
   .admin-link { padding: 8px 11px; font-size: 10px; }
   .site-brand { font-size: 19px; }
   .site-hero { min-height: 730px; }

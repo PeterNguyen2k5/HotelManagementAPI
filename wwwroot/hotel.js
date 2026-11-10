@@ -4,12 +4,32 @@ const recommendedResults = document.getElementById('recommended-results');
 const popularResults = document.getElementById('popular-results');
 const dialog = document.getElementById('reservation-dialog');
 const toast = document.getElementById('site-toast');
+const siteMenuToggle = document.getElementById('site-menu-toggle');
+const siteNav = document.getElementById('site-nav');
 let availableRooms = [];
 let roomSearchSelection = null;
 let roomSearchRevision = 0;
 let guestOptionsRequest = null;
 let guestOptionsInitialized = false;
 let maximumGuests = 100;
+
+function closeSiteMenu() {
+  siteMenuToggle.setAttribute('aria-expanded', 'false');
+}
+siteMenuToggle.addEventListener('click', () => {
+  siteMenuToggle.setAttribute('aria-expanded', String(siteMenuToggle.getAttribute('aria-expanded') === 'false'));
+});
+document.addEventListener('click', event => {
+  if (!siteMenuToggle.contains(event.target) && (!siteNav.contains(event.target) || event.target.closest('a')))
+    closeSiteMenu();
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && siteMenuToggle.getAttribute('aria-expanded') === 'true') {
+    closeSiteMenu();
+    siteMenuToggle.focus();
+  }
+});
+window.matchMedia('(max-width: 680px)').addEventListener('change', closeSiteMenu);
 
 function localDate(offset = 0) {
   return window.hotelTime.day(offset);

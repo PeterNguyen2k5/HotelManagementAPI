@@ -7,14 +7,14 @@
   <title>An Nhiên · Hotel & Resort</title>
   <link rel="icon" href="/hotel-favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/fonts.css?v=20261027-portal-2">
-  <link rel="stylesheet" href="/hotel.css?v=room-card-type-1">
+  <link rel="stylesheet" href="/hotel.css?v=mobile-nav-1">
   <link rel="stylesheet" href="/room-details.css?v=20261027-portal-2">
   <link rel="stylesheet" href="/hero-ocean.css?v=20261027-portal-2">
   <script src="/api-errors.js?v=20261027-portal-2" defer></script>
   <script src="/booking-hold.js?v=20261029-holds-1" defer></script>
   <script src="/hotel-time.js?v=20261027-deploy-1" defer></script>
   <script src="/customer-auth.js?v=20261028-account-1" defer></script>
-  <script src="/hotel.js?v=booking-policy-1" defer></script>
+  <script src="/hotel.js?v=mobile-nav-1" defer></script>
   <script src="/room-details.js?v=room-search-dates-1" defer></script>
   <script src="/guest-operations.js?v=20261027-portal-2" defer></script>
   <script src="/hero-ocean.js?v=20261027-portal-2" type="module"></script>
@@ -26,10 +26,15 @@
 <body>
   <header class="site-header">
     <a class="site-brand" href="#home">An Nhiên<small>HOTEL &amp; RESORT</small></a>
-    <nav aria-label="Điều hướng chính">
-      <a href="#home">Trang chủ</a>
+    <button type="button" class="site-menu-toggle" id="site-menu-toggle" aria-expanded="false" aria-controls="site-nav">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      Menu
+    </button>
+    <nav id="site-nav" aria-label="Điều hướng chính">
+      <a href="#home" class="site-nav-desktop">Trang chủ</a>
       <a href="#rooms">Hạng phòng</a>
-      <a href="#experience">Trải nghiệm</a>
+      <a href="#recommended-rooms" class="site-nav-mobile">Phòng đề xuất</a>
+      <a href="#experience" class="site-nav-desktop">Trải nghiệm</a>
       <a href="#contact">Liên hệ</a>
     </nav>
     <div id="customer-actions" class="customer-actions" aria-label="Tài khoản khách hàng"></div>
