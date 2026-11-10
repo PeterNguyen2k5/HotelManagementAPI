@@ -363,6 +363,8 @@ Trang chủ (mục Liên hệ), trang khách hàng và trang thanh toán dùng c
 
 Thông tin hiện tại được chủ project cho phép công khai trong appsettings.json, mục HotelContact. Có thể thay bằng biến môi trường Render HotelContact__Phone, HotelContact__Email, HotelContact__FacebookUrl. Các trường này tách khỏi CustomerEmail:Smtp và không đọc thông tin cá nhân từ hồ sơ khách. Đường dẫn Facebook chỉ nhận HTTPS đúng host Facebook; số gọi và email được chuẩn hóa. Cấu hình trống hoặc không hợp lệ không tạo nút giả; lỗi tải có nút thử lại.
 
+Đặt `HotelContact__Address` trên Render để thay địa chỉ công khai. Ứng dụng dùng địa chỉ này để tạo liên kết tìm kiếm trên Google Maps. Trang `/booking-policy.html` được liên kết từ mục Liên hệ, hộp đặt phòng và bước chọn phương thức thanh toán.
+
 Các trường HotelContact được lưu trong gói sao lưu đầy đủ và nạp lại khi phục hồi. Kiểm thử: node tests/run-hotel-contact.mjs và node tests/run-full-backup.mjs. Bộ UI kiểm tra desktop/mobile, liên kết chính xác, tình huống API lỗi và không nhúng URL chạy JavaScript; không thực hiện cuộc gọi, gửi mail hoặc gửi tin Facebook.
 
 

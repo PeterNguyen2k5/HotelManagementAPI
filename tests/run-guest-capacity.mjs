@@ -90,6 +90,7 @@ try{
   await page.locator('#room-results .room-detail-link').click();
   await page.locator('#room-details-dialog .room-detail-book').click();
   await page.locator('#booking-form').waitFor();
+  assert.equal(await page.locator('#booking-form a[href="/booking-policy.html"]').getAttribute('target'),'_blank');checks++;
   assert.match(await page.locator('#booking-form header p').innerText(),/20 khách/);checks++;
   await page.locator('#booking-form [type="submit"]').click();await page.waitForURL('**/payment.html?bookingId=*');
   await page.waitForFunction(()=>document.querySelector('#summary-stay-info').textContent.includes('20 khách'));

@@ -9,8 +9,12 @@
     if (kind === 'email') return value.startsWith('mailto:') && !/[\r\n<>]/.test(value) ? value : null;
     try {
       const url = new URL(value);
-      return url.protocol === 'https:' && !url.username && !url.password && !url.port &&
-        ['facebook.com','www.facebook.com','m.facebook.com'].includes(url.hostname) ? url.href : null;
+      if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
+      if (kind === 'map') {
+        return url.hostname === 'www.google.com' && url.pathname === '/maps/search/' &&
+          url.searchParams.get('api') === '1' && url.searchParams.get('query') ? url.href : null;
+      }
+      return ['facebook.com','www.facebook.com','m.facebook.com'].includes(url.hostname) ? url.href : null;
     } catch { return null; }
   }
   function render(data) {
@@ -32,7 +36,26 @@
         links.append(anchor);
       }
       if (links.childElementCount) block.append(links);
-      else { const empty = document.createElement('p'); empty.textContent = 'Khách sạn chưa cập nhật kênh liên hệ. Vui lòng thử lại sau.'; block.append(empty); }
+      if (typeof data.address === 'string' && data.address.trim()) {
+        const location = document.createElement('p');
+        location.className = 'hotel-contact-address';
+        const label = document.createElement('strong'); label.textContent = 'Địa chỉ khách sạn';
+        const address = document.createElement('span'); address.textContent = data.address;
+        location.append(label, address);
+        const href = safeLink(data.mapUrl, 'map');
+        if (href) {
+          const map = document.createElement('a');
+          map.href = href; map.target = '_blank'; map.rel = 'noopener noreferrer';
+          map.dataset.contactKind = 'map'; map.textContent = 'Mở Google Maps';
+          location.append(map);
+        }
+        block.append(location);
+      }
+      if (!block.childElementCount) {
+        const empty = document.createElement('p');
+        empty.textContent = 'Khách sạn chưa cập nhật kênh liên hệ. Vui lòng thử lại sau.';
+        block.append(empty);
+      }
     }
   }
   async function load() {

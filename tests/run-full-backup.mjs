@@ -25,6 +25,7 @@ async function start(extra=[]){await stop();server=await startTestServer({projec
  '--Storage:DataDirectory',source,'--Payments:BankConfigFile',externalBank,'--Hotel:TimeZone','Asia/Tokyo','--CustomerEmail:Mode','Pickup','--CustomerEmail:PublicBaseUrl',base,
  '--CustomerEmail:From','fixture@example.test','--CustomerEmail:Smtp:Host','127.0.0.1','--CustomerEmail:Smtp:Username','fixture','--CustomerEmail:Smtp:Password',smtpSecret,
  '--HotelContact:Phone','0900000123','--HotelContact:Email','backup-contact@example.test','--HotelContact:FacebookUrl','https://www.facebook.com/backup.fixture',
+ '--HotelContact:Address','18 Đường Kiểm Thử, Tây Ninh',
  '--Monitoring:ScrapeKey',scrape,'--Backup:MaxBackups','2','--Backup:RetentionDays','14','--Backup:ReplicaDirectory',replica,...extra]});}
 async function api(method,route,body,status=200,token=admin,host=base){
  const response=await fetch(host+route,{method,headers:{...(body===undefined?{}:{'content-type':'application/json'}),...(token?{authorization:'Bearer '+token}:{})},body:body===undefined?undefined:JSON.stringify(body)});
@@ -81,6 +82,8 @@ try{
  assert.equal((await api('GET','/api/HotelConfiguration',undefined,200,null,restoredBase)).data.timeZone,'Asia/Tokyo');
  const restoredContact=(await api('GET','/api/HotelContact',undefined,200,null,restoredBase)).data;
  assert.equal(restoredContact.phone,'0900000123');assert.equal(restoredContact.email,'backup-contact@example.test');assert.equal(restoredContact.facebookUrl,'https://www.facebook.com/backup.fixture');checks+=3;
+ assert.equal(restoredContact.address,'18 Đường Kiểm Thử, Tây Ninh');
+ assert.equal(new URL(restoredContact.mapUrl).searchParams.get('query'),restoredContact.address);checks+=2;
  assert.equal((await api('GET',`/api/BookingOperations/${booking.id}/payments`,undefined,200,admin,restoredBase)).data.balance.paid,25000);
  assert.ok(Buffer.from(await (await fetch(restoredBase+imageUrl)).arrayBuffer()).equals(image));checks++;
  const restoredBank=(await api('GET','/api/BookingOperations/bank-config',undefined,200,null,restoredBase)).data;assert.equal(restoredBank.accountNumber,bank.accountNumber);assert.ok(!JSON.stringify(restoredBank).includes(bankKey));

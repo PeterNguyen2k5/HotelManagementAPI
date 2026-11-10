@@ -254,6 +254,8 @@ async function openReservation(room, selection, note = '') {
   const nights = Math.round((new Date(checkOutDate + 'T12:00:00') -
     new Date(checkInDate + 'T12:00:00')) / 86400000);
   dialog.innerHTML = '<form class="booking-form" id="booking-form"><header><h2>Đặt phòng '+escapeHtml(room.roomNumber)+'</h2><p>'+escapeHtml(room.roomTypeName)+' · '+nights+' đêm · '+guestCount+' khách</p></header><div class="booking-body"><label>Họ và tên<input name="fullName" maxlength="100" required autocomplete="name"></label><label>Số điện thoại<input name="phone" type="tel" maxlength="30" required autocomplete="tel"></label><label>Email (không bắt buộc)<input name="email" type="email" maxlength="200" autocomplete="email"></label><label>Ghi chú<textarea name="note" maxlength="500"></textarea></label><div class="booking-total"><span>Tiền phòng dự kiến</span><strong>'+money(room.price * nights)+'</strong></div><div id="booking-error"></div></div><div class="booking-actions"><button type="button" id="booking-cancel">Đóng</button><button type="submit">Gửi đặt phòng</button></div></form>';
+  dialog.querySelector('.booking-total').insertAdjacentHTML('afterend',
+    '<p class="booking-policy-note"><a href="/booking-policy.html" target="_blank" rel="noopener">Xem chính sách đổi, hủy và hoàn cọc (mở tab mới)</a></p>');
   if (customerSession.account) {
     const form = document.getElementById('booking-form');
     for (const key of ['fullName','phone','email']) {
