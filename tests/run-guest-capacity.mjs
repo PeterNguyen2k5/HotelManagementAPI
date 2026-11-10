@@ -46,6 +46,7 @@ try{
   const {chromium}=createRequire(import.meta.url)(process.env.HOTEL_PLAYWRIGHT_MODULE);
   browser=await chromium.launch({headless:true,...(process.env.HOTEL_BROWSER_PATH?{executablePath:process.env.HOTEL_BROWSER_PATH}:{})});
   const context=await browser.newContext(),page=await context.newPage(),errors=[];
+  const roomButtons=page.locator('#room-results [data-room]');
   page.on('pageerror',e=>errors.push(e.message));await page.addInitScript(token=>sessionStorage.setItem('hotel.customer.token',token),guest.token);
   for(const width of [390,1440]){
    await page.setViewportSize({width,height:950});await page.goto(base+'/hotel.html');
@@ -54,7 +55,7 @@ try{
    await page.locator('[name="checkInDate"]').fill(day(3));await page.locator('[name="checkOutDate"]').fill(day(4));
    await page.locator('select[name="guests"]').selectOption('20');
    await page.waitForFunction(()=>document.querySelector('#room-results').getAttribute('aria-busy')==='false');
-   assert.equal(await page.locator('[data-room]').count(),1);assert.equal(await page.locator('[data-room]').getAttribute('data-room'),String(large.id));
+   assert.equal(await roomButtons.count(),1);assert.equal(await roomButtons.getAttribute('data-room'),String(large.id));
    assert.equal(await page.locator('select[name="guests"]').inputValue(),'20');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));checks+=4;
    if(process.env.HOTEL_UI_SCREENSHOTS){await mkdir(process.env.HOTEL_UI_SCREENSHOTS,{recursive:true});await page.locator('#search-form').screenshot({path:path.join(process.env.HOTEL_UI_SCREENSHOTS,'guest-selector-'+width+'.png')});}
   }
@@ -64,10 +65,31 @@ try{
   assert.equal(await page.locator('select[name="guests"]').inputValue(),'20');checks++;
   await setCapacity(10);await page.locator('#search-form [type="submit"]').click();
   await page.waitForFunction(()=>document.querySelector('#room-results').textContent.includes('từ 1 đến 10'));
-  assert.equal(await page.locator('select[name="guests"]').inputValue(),'20');assert.equal(await page.locator('[data-room]').count(),0);checks+=2;
+  assert.equal(await page.locator('select[name="guests"]').inputValue(),'20');assert.equal(await roomButtons.count(),0);checks+=2;
   await setCapacity(20);await page.locator('#search-form [type="submit"]').click();
-  await page.locator('[data-room="'+large.id+'"]').waitFor();
-  await page.locator('[data-room="'+large.id+'"]').click();await page.locator('#booking-form').waitFor();
+  await roomButtons.waitFor();
+
+  // The room fits the original dates but is reserved for the extra night.
+  await api('POST','/api/Bookings',{
+   customerId:guest.account.customerId,roomId:large.id,guestCount:20,checkInDate:day(4),checkOutDate:day(5)
+  },201);
+  const checkout=page.locator('[name="checkOutDate"]');
+  const noRooms=page.locator('#room-results .empty-room').filter({hasText:/Không có phòng khả dụng/});
+  await checkout.fill(day(5));
+  await noRooms.waitFor();
+  assert.equal(await page.locator('#recommended-results [data-room]').count(),0);checks++;
+  await checkout.fill(day(4));
+  await roomButtons.waitFor();
+
+  // An edit that has not emitted a change event must not book against the previous results.
+  await checkout.evaluate((input,value)=>{input.value=value},day(5));
+  await roomButtons.click();
+  await noRooms.waitFor();
+  assert.equal(await page.locator('#booking-form').count(),0);checks++;
+  await checkout.fill(day(4));
+  await page.locator('#room-results .room-detail-link').click();
+  await page.locator('#room-details-dialog .room-detail-book').click();
+  await page.locator('#booking-form').waitFor();
   assert.match(await page.locator('#booking-form header p').innerText(),/20 khách/);checks++;
   await page.locator('#booking-form [type="submit"]').click();await page.waitForURL('**/payment.html?bookingId=*');
   await page.waitForFunction(()=>document.querySelector('#summary-stay-info').textContent.includes('20 khách'));

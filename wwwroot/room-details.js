@@ -2,7 +2,7 @@ const roomDetailsDialog=document.createElement('dialog');
 roomDetailsDialog.id='room-details-dialog';roomDetailsDialog.setAttribute('aria-label','Chi tiết phòng');
 document.body.append(roomDetailsDialog);
 let roomDetailsRevision=0;
-async function openRoomDetails(id){
+async function openRoomDetails(id, selection){
   const revision=++roomDetailsRevision;
   roomDetailsDialog.innerHTML='<div class="room-details-loading" role="status">Đang tải chi tiết phòng...</div><div class="room-detail-actions"><button type="button" data-detail-close>Đóng</button></div>';
   if(!roomDetailsDialog.open)roomDetailsDialog.showModal();
@@ -28,13 +28,13 @@ async function openRoomDetails(id){
     roomDetailsDialog.querySelectorAll('[data-gallery-step]').forEach(button=>{button.hidden=gallery.length<2;button.onclick=()=>select(selected+Number(button.dataset.galleryStep))});
     roomDetailsDialog.onkeydown=event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();select(selected+(event.key==='ArrowLeft'?-1:1))}};
     roomDetailsDialog.querySelector('.room-detail-book').onclick=async()=>{
-      try{const dates=currentDates();validDates(dates.checkInDate,dates.checkOutDate);if(dates.guestCount>room.capacity)throw new Error('Phòng không đủ chỗ cho số khách đã chọn.');roomDetailsDialog.close();await openReservation(room,dates)}
+      try{requireAvailableRoom(id,selection);roomDetailsDialog.close();await openReservation(room,selection)}
       catch(error){showToast(error.message,true)}
     };
   }catch(error){
     if(revision!==roomDetailsRevision||!roomDetailsDialog.open)return;
     roomDetailsDialog.innerHTML='<div class="room-details-loading"><h2>Chưa tải được chi tiết phòng</h2><p role="alert">'+escapeHtml(error.message)+'</p><button type="button" data-detail-retry>Thử lại</button></div><div class="room-detail-actions"><button type="button" data-detail-close>Đóng</button></div>';
-    roomDetailsDialog.querySelector('[data-detail-retry]').onclick=()=>openRoomDetails(id);
+    roomDetailsDialog.querySelector('[data-detail-retry]').onclick=()=>openRoomDetails(id,selection);
   }
 }
 roomDetailsDialog.addEventListener('click',event=>{if(event.target.closest('[data-detail-close]'))roomDetailsDialog.close()});

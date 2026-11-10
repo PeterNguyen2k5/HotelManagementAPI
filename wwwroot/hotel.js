@@ -5,6 +5,7 @@ const popularResults = document.getElementById('popular-results');
 const dialog = document.getElementById('reservation-dialog');
 const toast = document.getElementById('site-toast');
 let availableRooms = [];
+let roomSearchSelection = null;
 let roomSearchRevision = 0;
 let guestOptionsRequest = null;
 let guestOptionsInitialized = false;
@@ -55,6 +56,17 @@ function currentDates() {
   return { checkInDate: form.namedItem('checkInDate').value,
     checkOutDate: form.namedItem('checkOutDate').value,
     guestCount: Number(form.namedItem('guests').value) };
+}
+function sameRoomSelection(first, second) {
+  return first !== null && second !== null &&
+    first.checkInDate === second.checkInDate && first.checkOutDate === second.checkOutDate &&
+    first.guestCount === second.guestCount;
+}
+function requireAvailableRoom(roomId, selection) {
+  if (!sameRoomSelection(selection, currentDates()) || !sameRoomSelection(selection, roomSearchSelection))
+    throw new Error('Ngày lưu trú hoặc số khách đã thay đổi. Vui lòng tìm phòng lại.');
+  if (!availableRooms.some(room => room.id === roomId))
+    throw new Error('Phòng này không có trong kết quả tìm kiếm hiện tại. Vui lòng chọn phòng khác.');
 }
 function validDates(start, end) {
   if (!start || !end || end <= start) throw new Error('Ngày trả phòng phải sau ngày nhận phòng.');
@@ -178,6 +190,7 @@ async function loadRooms(scroll = false) {
   const revision = ++roomSearchRevision;
   const submit = searchForm.querySelector('[type="submit"]');
   availableRooms = [];
+  roomSearchSelection = null;
   document.getElementById('date-summary').textContent = '';
   roomResults.setAttribute('aria-busy', 'true');
   submit.disabled = true;
@@ -187,14 +200,20 @@ async function loadRooms(scroll = false) {
   try {
     await loadGuestOptions();
     if (revision !== roomSearchRevision) return;
-    const { checkInDate, checkOutDate, guestCount } = currentDates();
+    const selection = currentDates();
+    const { checkInDate, checkOutDate, guestCount } = selection;
     validDates(checkInDate, checkOutDate);
     validGuestCount(guestCount, maximumGuests);
-    const query = new URLSearchParams({ checkInDate, checkOutDate, guestCount });
+    const query = new URLSearchParams(selection);
     const rooms = await request('/api/Bookings/available-rooms?' + query, { signal: AbortSignal.timeout(20000) });
     if (revision !== roomSearchRevision) return;
+    if (!sameRoomSelection(selection, currentDates())) {
+      void loadRooms(scroll);
+      return;
+    }
     if (!Array.isArray(rooms)) throw new Error('Không tải được danh sách phòng. Vui lòng thử lại.');
     availableRooms = rooms;
+    roomSearchSelection = selection;
     currentRoomsPage = 1;
     document.getElementById('date-summary').textContent =
       new Date(checkInDate + 'T12:00:00').toLocaleDateString('vi-VN') + ' → ' +
@@ -221,8 +240,9 @@ async function loadRooms(scroll = false) {
     }
   }
 }
-async function openReservation(room, selection = currentDates(), note = '') {
+async function openReservation(room, selection, note = '') {
   await customerSessionReady;
+  requireAvailableRoom(room.id, selection);
   const { checkInDate, checkOutDate, guestCount } = selection;
   validDates(checkInDate, checkOutDate);
   validGuestCount(guestCount, 100);
@@ -252,6 +272,7 @@ async function openReservation(room, selection = currentDates(), note = '') {
     submit.disabled = true;
     const values = Object.fromEntries(new FormData(form).entries());
     try {
+      requireAvailableRoom(room.id, selection);
       const booking = await request('/api/Bookings/public', { method: 'POST',
         body: { ...values, email: values.email.trim() || null, roomId: room.id, checkInDate, checkOutDate, guestCount } });
       dialog.close();
@@ -272,14 +293,23 @@ searchForm.onsubmit = async event => {
   event.preventDefault();
   await loadRooms(true);
 };
-searchForm.elements.namedItem('guests').onchange = () => loadRooms();
+searchForm.addEventListener('change', event => {
+  if (event.target.matches('input[type="date"], select[name="guests"]')) void loadRooms();
+});
 function handleRoomClick(event) {
-  const detail = event.target.closest('[data-room-detail]');
-  if (detail) { openRoomDetails(Number(detail.dataset.roomDetail)); return; }
-  const button = event.target.closest('[data-room]');
+  const button = event.target.closest('[data-room], [data-room-detail]');
   if (!button) return;
+  const selection = roomSearchSelection;
+  if (!sameRoomSelection(selection, currentDates())) {
+    void loadRooms();
+    return;
+  }
+  if (button.dataset.roomDetail) {
+    void openRoomDetails(Number(button.dataset.roomDetail), selection);
+    return;
+  }
   const room = availableRooms.find(x => x.id === Number(button.dataset.room));
-  if (room) openReservation(room).catch(error => showToast(error.message, true));
+  if (room) openReservation(room, selection).catch(error => showToast(error.message, true));
 }
 recommendedResults.onclick = handleRoomClick;
 popularResults.onclick = handleRoomClick;
