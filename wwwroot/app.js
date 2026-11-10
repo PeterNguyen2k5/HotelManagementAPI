@@ -247,10 +247,10 @@ async function roomtypes(){
 }
 async function customers(){
   const f=state.filters.customers||{},data=await api('/api/Customers?'+query({PageNumber:state.page,PageSize:10,Keyword:f.keyword,SortBy:f.sort}));
-  const rows=data.items.map(x=>'<tr><td><strong>'+esc(x.fullName)+'</strong></td><td>'+esc(x.phone||'—')+'</td><td>'+esc(x.identityCard||'—')+'</td><td>'+esc(x.email||'—')+'</td><td class="actions">'+btn('Sửa','customer-edit',x.id)+(state.user.role==='Admin'?btn('Xóa','customer-delete',x.id,'danger'):'')+'</td></tr>');
+  const rows=data.items.map(x=>'<tr><td><strong>'+esc(x.fullName)+'</strong></td><td>'+esc(x.username||'Chưa có tài khoản')+'</td><td>'+esc(x.phone||'—')+'</td><td>'+esc(x.identityCard||'—')+'</td><td>'+esc(x.email||'—')+'</td><td class="actions">'+btn('Sửa','customer-edit',x.id)+(state.user.role==='Admin'?btn('Xóa','customer-delete',x.id,'danger'):'')+'</td></tr>');
   document.getElementById('main').innerHTML=head('Khách hàng','Thông tin liên hệ và hồ sơ lưu trú.','customer-add','Thêm khách hàng')+
-    '<form class="toolbar" id="filter-form"><input name="keyword" placeholder="Tên, số điện thoại hoặc CCCD" value="'+esc(f.keyword||'')+'"><select name="sort"><option value="">Mặc định (ID tăng)</option><option value="name_asc" '+(f.sort==='name_asc'?'selected':'')+'>Tên A-Z</option><option value="name_desc" '+(f.sort==='name_desc'?'selected':'')+'>Tên Z-A</option><option value="id_desc" '+(f.sort==='id_desc'?'selected':'')+'>Mới nhất trước</option></select><button class="btn" type="submit">Tìm kiếm</button></form>'+
-    table(['Họ tên','Điện thoại','CCCD','Email','Thao tác'],rows)+pager(data);
+    '<form class="toolbar" id="filter-form"><input name="keyword" aria-label="Tìm theo họ tên, tên đăng nhập, số điện thoại hoặc CCCD" placeholder="Tên, tài khoản, SĐT, CCCD" value="'+esc(f.keyword||'')+'"><select name="sort"><option value="">Mặc định (ID tăng)</option><option value="name_asc" '+(f.sort==='name_asc'?'selected':'')+'>Tên A-Z</option><option value="name_desc" '+(f.sort==='name_desc'?'selected':'')+'>Tên Z-A</option><option value="id_desc" '+(f.sort==='id_desc'?'selected':'')+'>Mới nhất trước</option></select><button class="btn" type="submit">Tìm kiếm</button></form>'+
+    table(['Họ tên','Tên đăng nhập','Điện thoại','CCCD','Email','Thao tác'],rows)+pager(data);
 }
 async function bookings(){
   const f=state.filters.bookings||{},data=await api('/api/Bookings?'+query({PageNumber:state.page,PageSize:10,Status:f.status,Attention:f.attention,CustomerKeyword:f.customerKeyword,RoomNumber:f.roomNumber,FromDate:f.fromDate,ToDate:f.toDate}));

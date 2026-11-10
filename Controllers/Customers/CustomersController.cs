@@ -16,15 +16,19 @@ public sealed class CustomersController(HotelDbContext db) : ControllerBase
     public async Task<IActionResult> List([FromQuery] CustomerQuery query)
     {
         var rows = db.Customers.AsNoTracking().AsQueryable();
+        var paged = query.PageNumber.HasValue || query.PageSize.HasValue;
         if (!string.IsNullOrWhiteSpace(query.Keyword))
         {
             var term = query.Keyword.Trim();
+            var usernameTerm = term.ToLowerInvariant();
             rows = rows.Where(x => x.FullName.Contains(term) ||
                 (x.Phone != null && x.Phone.Contains(term)) ||
-                (x.IdentityCard != null && x.IdentityCard.Contains(term)));
+                (x.IdentityCard != null && x.IdentityCard.Contains(term)) ||
+                (paged && db.CustomerAccounts.Any(account =>
+                    account.CustomerId == x.Id && account.Username.Contains(usernameTerm))));
         }
 
-        if (query.PageNumber.HasValue || query.PageSize.HasValue)
+        if (paged)
         {
             var count = await rows.CountAsync();
             rows = query.SortBy?.ToLowerInvariant() switch
@@ -37,7 +41,16 @@ public sealed class CustomersController(HotelDbContext db) : ControllerBase
             var page = query.PageNumber ?? 1;
             var size = query.PageSize ?? 10;
             var skip = (long)(page - 1) * size;
-            var items = skip >= count ? [] : await rows.Skip((int)skip).Take(size).ToListAsync();
+            var items = skip >= count ? [] : await rows.Skip((int)skip).Take(size)
+                .Select(customer => new
+                {
+                    customer.Id, customer.FullName, customer.IdentityCard, customer.Phone,
+                    customer.Email, customer.Address, customer.CreatedAt,
+                    bookings = Array.Empty<Booking>(),
+                    username = db.CustomerAccounts.Where(account => account.CustomerId == customer.Id)
+                        .Select(account => account.Username).FirstOrDefault()
+                })
+                .ToListAsync();
             return Ok(ApiSupport.Page(items, count, page, size));
         }
 
