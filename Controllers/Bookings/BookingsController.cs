@@ -96,6 +96,17 @@ public sealed class BookingsController(HotelDbContext db, TimeProvider clock, Ho
         return Ok(rooms.Select(ApiSupport.RoomView));
     }
 
+    [HttpGet("room-popularity"), AllowAnonymous]
+    public async Task<IActionResult> RoomPopularity(CancellationToken cancellationToken)
+    {
+        var counts = await db.Bookings
+            .Where(booking => booking.Status == BookingStates.CheckedOut)
+            .GroupBy(booking => booking.RoomId)
+            .Select(group => new { roomId = group.Key, completedStays = group.Count() })
+            .ToListAsync(cancellationToken);
+        return Ok(counts);
+    }
+
     [HttpPost, Authorize(Roles = Roles.Staff)]
     public async Task<IActionResult> Create(BookingCreate request)
     {

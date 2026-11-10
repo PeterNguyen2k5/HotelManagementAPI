@@ -1,5 +1,7 @@
 const searchForm = document.getElementById('search-form');
 const roomResults = document.getElementById('room-results');
+const recommendedResults = document.getElementById('recommended-results');
+const popularResults = document.getElementById('popular-results');
 const dialog = document.getElementById('reservation-dialog');
 const toast = document.getElementById('site-toast');
 let availableRooms = [];
@@ -87,6 +89,62 @@ async function loadGuestOptions() {
 const ROOMS_PER_PAGE = 6;
 let currentRoomsPage = 1;
 
+function renderRoomGrid(rooms, stayCounts) {
+  return '<div class="room-grid">' + rooms.map(room => {
+    const cover = room.coverUrl || '/images/room-illustrations/room-' + (room.id % 3 + 1) + '-1.svg';
+    const name = 'Phòng ' + escapeHtml(room.roomNumber);
+    const description = escapeHtml(room.description || 'Không gian nghỉ dưỡng tiện nghi và riêng tư.');
+    const completedStays = stayCounts?.get(room.id);
+    const stayLabel = completedStays
+      ? '<p class="room-stay-count">' + completedStays.toLocaleString('vi-VN') + ' lượt lưu trú đã hoàn tất</p>'
+      : '';
+    return '<article class="room-card"><img src="' + escapeHtml(cover) + '" alt="' + name + '" loading="lazy">' +
+      '<div class="room-card-body"><span class="category">' + escapeHtml(room.roomTypeName) + '</span>' +
+      '<h3><button type="button" data-room-detail="' + room.id + '">' + name + '</button></h3>' +
+      stayLabel + '<p>Tối đa ' + room.capacity + ' khách</p><p>' + description + '</p>' +
+      '<div class="room-card-footer"><div><strong>' + money(room.price) + '</strong><small>Mỗi đêm</small></div>' +
+      '<div class="room-card-actions"><button type="button" class="room-detail-link" data-room-detail="' +
+      room.id + '">Xem chi tiết</button><button type="button" data-room="' + room.id +
+      '">Đặt phòng</button></div></div></div></article>';
+  }).join('') + '</div>';
+}
+
+function showCollectionMessage(container, message) {
+  const notice = document.createElement('div');
+  notice.className = 'empty-room';
+  notice.textContent = message;
+  container.replaceChildren(notice);
+}
+
+function renderRecommendedRooms(rooms) {
+  const byPrice = [...rooms].sort((a, b) => a.price - b.price);
+  const firstByType = new Map();
+  for (const room of byPrice) {
+    if (!firstByType.has(room.roomTypeId)) firstByType.set(room.roomTypeId, room);
+  }
+  const recommended = [...new Set([...firstByType.values(), ...byPrice])].slice(0, 3);
+  recommendedResults.innerHTML = renderRoomGrid(recommended);
+}
+
+async function loadPopularRooms(rooms, revision) {
+  try {
+    const data = await request('/api/Bookings/room-popularity', { signal: AbortSignal.timeout(15000) });
+    if (revision !== roomSearchRevision) return;
+    const counts = new Map(data.map(entry => [entry.roomId, entry.completedStays]));
+    const popular = rooms.filter(room => counts.has(room.id))
+      .sort((a, b) => counts.get(b.id) - counts.get(a.id)).slice(0, 3);
+    if (popular.length) {
+      popularResults.innerHTML = renderRoomGrid(popular, counts);
+    } else {
+      showCollectionMessage(popularResults, 'Các phòng còn trống chưa có lượt lưu trú hoàn tất để xếp hạng.');
+    }
+  } catch {
+    if (revision === roomSearchRevision) {
+      showCollectionMessage(popularResults, 'Chưa tải được xếp hạng. Bạn vẫn có thể xem phòng đề xuất.');
+    }
+  }
+}
+
 function renderRooms(rooms, page = 1) {
   if (!rooms.length) {
     roomResults.innerHTML = '<div class="empty-room">Không có phòng khả dụng trong khoảng ngày này. Hãy thử ngày khác.</div>';
@@ -114,9 +172,7 @@ function renderRooms(rooms, page = 1) {
       '</div></div>';
   }
 
-  roomResults.innerHTML = '<div class="room-grid">' + pagedRooms.map(room =>
-    '<article class="room-card"><img src="'+escapeHtml(room.coverUrl||('/images/room-illustrations/room-'+(room.id%3+1)+'-1.svg'))+'" alt="Phòng '+escapeHtml(room.roomNumber)+'" loading="lazy"><div class="room-card-body"><span class="category">'+escapeHtml(room.roomTypeName)+'</span><h3><button type="button" data-room-detail="'+room.id+'">Phòng '+escapeHtml(room.roomNumber)+'</button></h3><p>Tối đa '+room.capacity+' khách</p><p>'+escapeHtml(room.description || 'Không gian nghỉ dưỡng tiện nghi và riêng tư.')+'</p><div class="room-card-footer"><div><strong>'+money(room.price)+'</strong><small>Mỗi đêm</small></div><div class="room-card-actions"><button type="button" class="room-detail-link" data-room-detail="'+room.id+'">Xem chi tiết</button><button type="button" data-room="'+room.id+'">Đặt phòng</button></div></div></div></article>'
-  ).join('') + '</div>' + paginationHtml;
+  roomResults.innerHTML = renderRoomGrid(pagedRooms) + paginationHtml;
 }
 async function loadRooms(scroll = false) {
   const revision = ++roomSearchRevision;
@@ -126,6 +182,8 @@ async function loadRooms(scroll = false) {
   roomResults.setAttribute('aria-busy', 'true');
   submit.disabled = true;
   roomResults.textContent = 'Đang tìm phòng...';
+  recommendedResults.textContent = 'Đang tìm phòng đề xuất…';
+  popularResults.textContent = 'Đang tải xếp hạng…';
   try {
     await loadGuestOptions();
     if (revision !== roomSearchRevision) return;
@@ -142,9 +200,18 @@ async function loadRooms(scroll = false) {
       new Date(checkInDate + 'T12:00:00').toLocaleDateString('vi-VN') + ' → ' +
       new Date(checkOutDate + 'T12:00:00').toLocaleDateString('vi-VN');
     renderRooms(availableRooms, 1);
+    if (rooms.length) {
+      renderRecommendedRooms(rooms);
+      void loadPopularRooms(rooms, revision);
+    } else {
+      showCollectionMessage(recommendedResults, 'Hãy thử đổi ngày hoặc số khách để xem thêm gợi ý.');
+      showCollectionMessage(popularResults, 'Chưa có phòng còn trống phù hợp để hiển thị xếp hạng.');
+    }
   } catch (error) {
     if (revision !== roomSearchRevision) return;
     roomResults.innerHTML = '<div class="empty-room room-search-error"><h3>Chưa tải được phòng</h3><p>'+escapeHtml(error.message)+'</p><button type="button" data-room-retry>Thử lại</button></div>';
+    showCollectionMessage(recommendedResults, 'Hãy thử tìm phòng lại để xem đề xuất.');
+    showCollectionMessage(popularResults, 'Hãy thử tìm phòng lại để xem xếp hạng.');
     showToast(error.message, true);
   } finally {
     if (revision === roomSearchRevision) {
@@ -206,6 +273,16 @@ searchForm.onsubmit = async event => {
   await loadRooms(true);
 };
 searchForm.elements.namedItem('guests').onchange = () => loadRooms();
+function handleRoomClick(event) {
+  const detail = event.target.closest('[data-room-detail]');
+  if (detail) { openRoomDetails(Number(detail.dataset.roomDetail)); return; }
+  const button = event.target.closest('[data-room]');
+  if (!button) return;
+  const room = availableRooms.find(x => x.id === Number(button.dataset.room));
+  if (room) openReservation(room).catch(error => showToast(error.message, true));
+}
+recommendedResults.onclick = handleRoomClick;
+popularResults.onclick = handleRoomClick;
 roomResults.onclick = event => {
   if (event.target.closest('[data-room-retry]')) { loadRooms(); return; }
   const pageBtn = event.target.closest('[data-room-page]');
@@ -218,12 +295,7 @@ roomResults.onclick = event => {
     }
     return;
   }
-  const detail = event.target.closest('[data-room-detail]');
-  if (detail) { openRoomDetails(Number(detail.dataset.roomDetail)); return; }
-  const button = event.target.closest('[data-room]');
-  if (!button) return;
-  const room = availableRooms.find(x => x.id === Number(button.dataset.room));
-  if (room) openReservation(room).catch(error => showToast(error.message, true));
+  handleRoomClick(event);
 };
 window.hotelTimeReady.then(() => {
   searchForm.elements.namedItem('checkInDate').value = localDate();

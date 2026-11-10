@@ -7,14 +7,14 @@
   <title>An Nhiên · Hotel & Resort</title>
   <link rel="icon" href="/hotel-favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/fonts.css?v=20261027-portal-2">
-  <link rel="stylesheet" href="/hotel.css?v=20261027-portal-2">
+  <link rel="stylesheet" href="/hotel.css?v=room-collections-1">
   <link rel="stylesheet" href="/room-details.css?v=20261027-portal-2">
   <link rel="stylesheet" href="/hero-ocean.css?v=20261027-portal-2">
   <script src="/api-errors.js?v=20261027-portal-2" defer></script>
   <script src="/booking-hold.js?v=20261029-holds-1" defer></script>
   <script src="/hotel-time.js?v=20261027-deploy-1" defer></script>
   <script src="/customer-auth.js?v=20261028-account-1" defer></script>
-  <script src="/hotel.js?v=20261029-guests-1" defer></script>
+  <script src="/hotel.js?v=room-collections-1" defer></script>
   <script src="/room-details.js?v=20261027-portal-2" defer></script>
   <script src="/guest-operations.js?v=20261027-portal-2" defer></script>
   <script src="/hero-ocean.js?v=20261027-portal-2" type="module"></script>
@@ -63,6 +63,26 @@
     <section class="rooms-section" id="rooms">
       <div class="section-heading"><div><p class="eyebrow">CHỌN KHÔNG GIAN CỦA BẠN</p><h2>Phòng đang sẵn sàng</h2><p>Chọn ngày lưu trú để xem phòng và giá thực tế.</p></div><span id="date-summary"></span></div>
       <div id="room-results" class="room-results" aria-live="polite">Đang tìm phòng...</div>
+    </section>
+    <section class="rooms-section room-collection" id="recommended-rooms" aria-labelledby="recommended-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">GỢI Ý CHO KỲ NGHỈ CỦA BẠN</p>
+          <h2 id="recommended-heading">Phòng đề xuất</h2>
+          <p>Khám phá các hạng phòng còn trống phù hợp với ngày lưu trú và số khách bạn chọn.</p>
+        </div>
+      </div>
+      <div id="recommended-results" aria-live="polite">Đang tìm phòng đề xuất…</div>
+    </section>
+    <section class="rooms-section room-collection" id="popular-rooms" aria-labelledby="popular-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">LỰA CHỌN CỦA KHÁCH LƯU TRÚ</p>
+          <h2 id="popular-heading">Phòng được yêu thích nhiều nhất</h2>
+          <p>Xếp hạng các phòng đang còn trống theo số lượt lưu trú đã hoàn tất.</p>
+        </div>
+      </div>
+      <div id="popular-results" aria-live="polite">Đang tải xếp hạng…</div>
     </section>
     <section class="contact-section" id="contact">
       <p class="eyebrow">AN NHIÊN HOTEL &amp; RESORT</p>
